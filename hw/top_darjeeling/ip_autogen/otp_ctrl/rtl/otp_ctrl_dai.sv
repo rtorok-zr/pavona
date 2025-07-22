@@ -722,7 +722,7 @@ module otp_ctrl_dai
             // Check that the address is not out-of-bounds.
             part_sel_valid &&
             // The entire address space of a zeroizable partition can be cleared
-            (base_sel_q == DaiOffset)) begin
+            base_sel_q == DaiOffset) begin
           otp_req_o = 1'b1;
           otp_cmd_o = otp_ctrl_macro_pkg::Zeroize;
           if (otp_gnt_i) begin

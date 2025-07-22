@@ -1,4 +1,5 @@
 // Copyright lowRISC contributors (OpenTitan project).
+// Copyright zeroRISC Inc.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 {
@@ -146,7 +147,7 @@
     }
 
     {
-      name: otp_ctrl_parallel_key_req
+      name: otp_ctrl_parallel_key_reqhw/ip_templates/otp_ctrl/dv/otp_ctrl_sim_cfg.hjson.tpl
       uvm_test_seq: otp_ctrl_parallel_key_req_vseq
     }
 
@@ -166,6 +167,16 @@
     {
       name: "{name}_stress_all_with_rand_reset"
       reseed: 100
+    }
+
+    {
+      name: otp_ctrl_zeroization
+      uvm_test_seq: otp_ctrl_zeroization_vseq
+    }
+
+    {
+      name: otp_ctrl_zeroization_with_checks
+      uvm_test_seq: otp_ctrl_zeroization_vseq
     }
   ]
 

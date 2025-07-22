@@ -1,4 +1,5 @@
 // Copyright lowRISC contributors (OpenTitan project).
+// Copyright zeroRISC Inc.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -22,3 +23,5 @@
 `include "otp_ctrl_regwen_vseq.sv"
 `include "otp_ctrl_test_access_vseq.sv"
 `include "otp_ctrl_stress_all_vseq.sv"
+`include "otp_ctrl_zeroization_vseq.sv"
+`include "otp_ctrl_zeroization_with_checks_vseq.sv"

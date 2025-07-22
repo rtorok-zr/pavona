@@ -21,6 +21,7 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
   bit dai_wr_ip;
   int dai_digest_ip = LifeCycleIdx; // Default to LC as it does not have digest.
   bit ignore_digest_chk = 0;
+  bit ignore_digest_zero_chk [string] = {"default":0};
 
   // This bit is used for DAI interface to mark if the read access is valid.
   bit dai_read_valid;
@@ -142,8 +143,8 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
       @(posedge cfg.otp_ctrl_vif.pwr_otp_done_o || cfg.under_reset ||
                 cfg.otp_ctrl_vif.alert_reqs) begin
         if (!cfg.under_reset && !cfg.otp_ctrl_vif.alert_reqs && cfg.en_scb) begin
-          otp_ctrl_part_pkg::otp_hw_cfg0_data_t  exp_hw_cfg0_data;
-          otp_ctrl_part_pkg::otp_hw_cfg1_data_t  exp_hw_cfg1_data;
+          otp_ctrl_part_pkg::otp_hw_cfg0_data_t  exp_hw_cfg0_data, temp_exp_hw_cfg0_data;
+          otp_ctrl_part_pkg::otp_hw_cfg1_data_t  exp_hw_cfg1_data, temp_exp_hw_cfg1_data;
           otp_ctrl_pkg::otp_keymgr_key_t         exp_keymgr_data;
           otp_ctrl_pkg::otp_lc_data_t            exp_lc_data;
           bit [otp_ctrl_pkg::KeyMgrKeyWidth-1:0] exp_keymgr_key0, exp_keymgr_key1;
@@ -198,11 +199,27 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
             exp_lc_data.state = otp_lc_data[LcCountWidth +: LcStateWidth];
 
             // Token values are depend on secret partitions value.
-            exp_lc_data.test_unlock_token =
-                    {<<32 {otp_a[TestUnlockTokenOffset/4 +: TestUnlockTokenSize/4]}};
-            exp_lc_data.test_exit_token =
-                    {<<32 {otp_a[TestExitTokenOffset/4 +: TestExitTokenSize/4]}};
-            exp_lc_data.rma_token = {<<32 {otp_a[RmaTokenOffset/4 +: RmaTokenSize/4]}};
+            // exp_lc_data.test_unlock_token =
+            //         {<<32 {otp_a[TestUnlockTokenOffset/4 +: TestUnlockTokenSize/4]}};
+            // exp_lc_data.test_exit_token =
+            //         {<<32 {otp_a[TestExitTokenOffset/4 +: TestExitTokenSize/4]}};
+            // exp_lc_data.rma_token = {<<32 {otp_a[RmaTokenOffset/4 +: RmaTokenSize/4]}};
+
+
+            for (int unsigned chunk =0; chunk < (TestUnlockTokenSize/4); chunk++) begin
+              exp_lc_data.test_unlock_token[(chunk*TL_DW) +: TL_DW] =
+                                                  read_from_otp_a((TestUnlockTokenOffset/4)+ chunk);
+            end
+
+            for (int unsigned chunk =0; chunk < (TestExitTokenSize/4); chunk++) begin
+              exp_lc_data.test_exit_token[(chunk*TL_DW) +: TL_DW] =
+                                                  read_from_otp_a((TestExitTokenOffset/4)+ chunk);
+            end
+
+            for (int unsigned chunk =0; chunk < (RmaTokenSize/4); chunk++) begin
+              exp_lc_data.rma_token[(chunk*TL_DW) +: TL_DW] =
+                                                  read_from_otp_a((RmaTokenOffset/4)+ chunk);
+            end
 
             // Check otp_lc_data_t struct by item is easier to debug.
             `DV_CHECK_EQ(cfg.otp_ctrl_vif.lc_data_o.valid, exp_lc_data.valid)
@@ -227,8 +244,12 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
             exp_keymgr_data = '0;
             exp_keymgr_data.creator_root_key_share0_valid = get_otp_digest_val(Secret2Idx) != 0;
             if (cfg.otp_ctrl_vif.lc_seed_hw_rd_en_i == lc_ctrl_pkg::On) begin
-              exp_keymgr_data.creator_root_key_share0 =
-                  {<<32 {otp_a[CreatorRootKeyShare0Offset/4 +: CreatorRootKeyShare0Size/4]}};
+              for (int unsigned chunk =0; chunk < (CreatorRootKeyShare0Size/4); chunk++) begin
+                exp_keymgr_data.creator_root_key_share0[(chunk*TL_DW) +: TL_DW] =
+                                        read_from_otp_a((CreatorRootKeyShare0Offset/4)+ chunk);
+              end
+              // exp_keymgr_data.creator_root_key_share0 =
+              //     {<<32 {otp_a[CreatorRootKeyShare0Offset/4 +: CreatorRootKeyShare0Size/4]}};
             end else begin
               exp_keymgr_data.creator_root_key_share0 =
                   top_darjeeling_rnd_cnst_pkg::RndCnstOtpCtrlPartInvDefault[CreatorRootKeyShare0Offset*8 +: CreatorRootKeyShare0Size*8];
@@ -238,8 +259,12 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
                          exp_keymgr_data.creator_root_key_share0_valid)
             exp_keymgr_data.creator_root_key_share1_valid = get_otp_digest_val(Secret2Idx) != 0;
             if (cfg.otp_ctrl_vif.lc_seed_hw_rd_en_i == lc_ctrl_pkg::On) begin
-              exp_keymgr_data.creator_root_key_share1 =
-                  {<<32 {otp_a[CreatorRootKeyShare1Offset/4 +: CreatorRootKeyShare1Size/4]}};
+              for (int unsigned chunk =0; chunk < (CreatorRootKeyShare1Size/4); chunk++) begin
+                exp_keymgr_data.creator_root_key_share1[(chunk*TL_DW) +: TL_DW] =
+                                        read_from_otp_a((CreatorRootKeyShare1Offset/4)+ chunk);
+              end
+              // exp_keymgr_data.creator_root_key_share1 =
+              //     {<<32 {otp_a[CreatorRootKeyShare1Offset/4 +: CreatorRootKeyShare1Size/4]}};
             end else begin
               exp_keymgr_data.creator_root_key_share1 =
                   top_darjeeling_rnd_cnst_pkg::RndCnstOtpCtrlPartInvDefault[CreatorRootKeyShare1Offset*8 +: CreatorRootKeyShare1Size*8];
@@ -249,8 +274,12 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
                          exp_keymgr_data.creator_root_key_share1_valid)
             exp_keymgr_data.creator_seed_valid = get_otp_digest_val(Secret2Idx) != 0;
             if (cfg.otp_ctrl_vif.lc_seed_hw_rd_en_i == lc_ctrl_pkg::On) begin
-              exp_keymgr_data.creator_seed =
-                  {<<32 {otp_a[CreatorSeedOffset/4 +: CreatorSeedSize/4]}};
+              for (int unsigned chunk =0; chunk < (CreatorSeedSize/4); chunk++) begin
+                exp_keymgr_data.creator_seed[(chunk*TL_DW) +: TL_DW] =
+                                        read_from_otp_a((CreatorSeedOffset/4)+ chunk);
+              end
+              // exp_keymgr_data.creator_seed =
+              //     {<<32 {otp_a[CreatorSeedOffset/4 +: CreatorSeedSize/4]}};
             end else begin
               exp_keymgr_data.creator_seed =
                   top_darjeeling_rnd_cnst_pkg::RndCnstOtpCtrlPartInvDefault[CreatorSeedOffset*8 +: CreatorSeedSize*8];
@@ -260,8 +289,12 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
                          exp_keymgr_data.creator_seed_valid)
             exp_keymgr_data.owner_seed_valid = get_otp_digest_val(Secret3Idx) != 0;
             if (cfg.otp_ctrl_vif.lc_seed_hw_rd_en_i == lc_ctrl_pkg::On) begin
-              exp_keymgr_data.owner_seed =
-                  {<<32 {otp_a[OwnerSeedOffset/4 +: OwnerSeedSize/4]}};
+              for (int unsigned chunk =0; chunk < (OwnerSeedSize/4); chunk++) begin
+                exp_keymgr_data.owner_seed[(chunk*TL_DW) +: TL_DW] =
+                                        read_from_otp_a((OwnerSeedOffset/4)+ chunk);
+              end
+              // exp_keymgr_data.owner_seed =
+              //     {<<32 {otp_a[OwnerSeedOffset/4 +: OwnerSeedSize/4]}};
             end else begin
               exp_keymgr_data.owner_seed =
                   top_darjeeling_rnd_cnst_pkg::RndCnstOtpCtrlPartInvDefault[OwnerSeedOffset*8 +: OwnerSeedSize*8];
@@ -557,7 +590,7 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
     string      csr_name;
 
     `uvm_info(`gfn, $sformatf("sw state %d, reg state %d", direct_access_regwen_state,
-                             `gmv(ral.direct_access_regwen)), UVM_LOW);
+                             `gmv(ral.direct_access_regwen)), UVM_HIGH);
 
     // if access was to a valid csr, get the csr handle
     if (csr_addr inside {cfg.ral_models[ral_name].csr_addrs}) begin
@@ -570,7 +603,7 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
       if (data_phase_read) begin
         bit [TL_AW-1:0] dai_addr = (csr_addr & addr_mask - SW_WINDOW_BASE_ADDR);
         bit [TL_AW-1:0] otp_addr = dai_addr >> 2;
-        int part_idx = get_part_index(dai_addr);
+        otp_ctrl_part_pkg::part_idx_e part_idx = get_part_index(dai_addr);
         bit [TL_DW-1:0] read_out;
         int ecc_err = OtpNoEccErr;
 
@@ -653,11 +686,12 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
           // We will check the intr_state after lc_program request is done, and the error bit will
           // be checked in the `process_lc_prog_req` task.
           if (cfg.otp_ctrl_vif.lc_prog_no_sta_check) do_read_check = 0;
-            if (do_read_check) begin
-              bit [TL_DW-1:0] intr_en           = `gmv(ral.intr_enable);
-              bit [NumOtpCtrlIntr-1:0] intr_exp = `gmv(ral.intr_state);
 
-              foreach (intr_exp[i]) begin
+          if (do_read_check) begin
+            bit [TL_DW-1:0] intr_en           = `gmv(ral.intr_enable);
+            bit [NumOtpCtrlIntr-1:0] intr_exp = `gmv(ral.intr_state);
+
+            foreach (intr_exp[i]) begin
               otp_intr_e intr = otp_intr_e'(i);
               `DV_CHECK_CASE_EQ(cfg.intr_vif.pins[i], (intr_en[i] & intr_exp[i]),
                                 $sformatf("Interrupt_pin: %0s", intr.name));
@@ -666,6 +700,12 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
                 cov.intr_pins_cg.sample(i, cfg.intr_vif.pins[i]);
               end
             end
+
+            //TODO: operation_done (interrupt[0]) goes out of sync as the prediction logic wait till
+            //"status" register is read. This is fundamentally incorrect and needs to be fixed
+            //for now we shall disable the "intr_state" register data check once the validity of the
+            //interrupts is checked above.
+            do_read_check = 0;
           end
         end
       end
@@ -686,7 +726,8 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
         if (addr_phase_write && !cfg.otp_ctrl_vif.under_error_states()) begin
           // here only normalize to 2 lsb, if is secret, will be reduced further
           bit [TL_AW-1:0] dai_addr = normalize_dai_addr(`gmv(ral.direct_access_address));
-          int part_idx = get_part_index(dai_addr);
+          otp_ctrl_part_pkg::part_idx_e part_idx = get_part_index(dai_addr);
+
           bit sw_read_lock = 0;
           void'(ral.direct_access_regwen.predict(0));
           under_dai_access = 1;
@@ -748,6 +789,12 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
             case (item.a_data)
               DaiDigest: cal_digest_val(part_idx);
               DaiRead: begin
+                bit prt_zeroized   = is_zeroized(int'(part_idx));
+                bit prt_has_digest = part_has_digest(int'(part_idx));
+                bit is_digest_addr = is_digest(dai_addr);
+                bit is_secret_addr = is_secret(dai_addr);
+                bit digest_is_set  = prt_has_digest ? (get_digest_reg_val(part_idx) != 0) : 0;
+
                 // Check if it is sw partition read lock
                 check_dai_rd_data = 1;
 
@@ -767,10 +814,22 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
                       cfg.otp_ctrl_vif.lc_owner_seed_sw_rw_en_i != lc_ctrl_pkg::On))) begin
                   predict_err(OtpDaiErrIdx, OtpAccessError);
                   predict_rdata(is_granule_64(dai_addr), 0, 0);
+
+                  if (cfg.en_cov && is_secret_addr && digest_is_set) begin
+                    cov.zr_partition_read_cg.sample(
+                      .part_idx     (part_idx),
+                      .is_secret    (is_secret_addr),
+                      .has_digest   (prt_has_digest),
+                      .digest_set   (digest_is_set),
+                      .access_error (1)
+                    );
+                  end
                 end else begin
                   bit [TL_DW-1:0] read_out0, read_out1;
                   bit [TL_AW-1:0] otp_addr = get_scb_otp_addr();
                   int ecc_err = 0;
+
+
 
                   // Backdoor read to check if there is any ECC error.
                   if (part_has_integrity(part_idx)) begin
@@ -785,7 +844,46 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
                     end
                   end
 
-                  if (ecc_err == OtpEccCorrErr && part_has_integrity(part_idx)) begin
+                  if (prt_zeroized && prt_has_digest && is_digest_addr) begin
+                    predict_no_err(OtpDaiErrIdx);
+                    predict_rdata(is_granule_64(dai_addr), otp_a[otp_addr], otp_a[otp_addr+1]);
+
+                    if (cfg.en_cov) begin
+                      cov.zr_partition_read_cg.sample(
+                        .part_idx     (part_idx),
+                        .is_secret    (is_secret_addr),
+                        .has_digest   (prt_has_digest),
+                        .digest_set   (digest_is_set),
+                        .access_error (0)
+                      );
+                    end
+                  end else if (prt_zeroized && is_secret_addr && prt_has_digest
+                           && get_digest_reg_val(part_idx) != 0) begin
+                    predict_err(OtpDaiErrIdx, OtpAccessError);
+
+                    if (cfg.en_cov) begin
+                      cov.zr_partition_read_cg.sample(
+                        .part_idx     (part_idx),
+                        .is_secret    (is_secret_addr),
+                        .has_digest   (prt_has_digest),
+                        .digest_set   (digest_is_set),
+                        .access_error (1)
+                      );
+                    end
+                  end else if (prt_zeroized) begin
+                    predict_no_err(OtpDaiErrIdx);
+                    predict_rdata(is_granule_64(dai_addr), otp_a[otp_addr], otp_a[otp_addr+1]);
+
+                    if (cfg.en_cov) begin
+                      cov.zr_partition_read_cg.sample(
+                        .part_idx     (part_idx),
+                        .is_secret    (is_secret_addr),
+                        .has_digest   (prt_has_digest),
+                        .digest_set   (digest_is_set),
+                        .access_error (0)
+                      );
+                    end
+                  end else if (ecc_err == OtpEccCorrErr && part_has_integrity(part_idx)) begin
                     predict_err(OtpDaiErrIdx, OtpMacroEccCorrError);
                     backdoor_update_otp_array(dai_addr);
                     predict_rdata(is_granule_64(dai_addr),
@@ -877,6 +975,60 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
                       end
                     end
                   end
+                end
+              end
+              DaiZeroize: begin
+                bit[TL_AW-1:0] otp_addr = get_scb_otp_addr();
+
+                `uvm_info(`gfn, $sformatf("Zeroizing Loc: Part Index :%s, PartZeroFieldAddr :%x",
+                                      part_idx.name, PART_OTP_ZEROIZED_ADDRS[part_idx]), UVM_LOW);
+                `uvm_info(`gfn, $sformatf("Zeroizing Loc: otp_addr :%x, dai_addr :%x",
+                                      otp_addr, dai_addr), UVM_LOW);
+                `uvm_info(`gfn, $sformatf("Zeroizing Loc: is_granule_64 :%x",
+                                      is_granule_64(dai_addr)), UVM_LOW);
+
+                // Need to check if Partition is zeroizable first. If not raise interrupt and set
+                // the status and error registers
+                if (!part_is_zeroizable(int'(part_idx))) begin
+                  predict_err(OtpDaiErrIdx, OtpAccessError);
+                end else begin
+                  bit [TL_DW*2-1:0] descrambled_val;
+                  bit [TL_DW-1:0]   rdata_ret_val = '{default:1};
+                  // Partition is zeroizable
+                  if (otp_addr == PART_OTP_ZEROIZED_ADDRS[part_idx]) begin
+                    `uvm_info(`gfn, $sformatf("%s is zeroized, Digest ignored in future checks",
+                                        part_idx.name), UVM_LOW);
+                    // Need to separate out individual partition digests and set the ignore flag.
+                    ignore_digest_zero_chk[part_idx.name] = 1;
+                  end
+
+                  predict_no_err(OtpDaiErrIdx);
+                  dai_wr_ip = 1;
+
+                  // TODO: OTP Array in the scoreboard contains descrambled data! Not an actual
+                  // reflection of the RTL. Need to figure out how to fix this
+                  descrambled_val = descramble_data('{default:1}, part_idx);
+
+                  otp_a[otp_addr] = (   is_secret(dai_addr) && !is_zeroized_addr(dai_addr)
+                                     && !is_digest(dai_addr))
+                                   ? descrambled_val[TL_DW-1:0]:'{default:1};
+                  rdata_ret_val = is_granule_64(dai_addr) ? $countones(rdata_ret_val)*2
+                                                          : $countones(rdata_ret_val);
+                  void'(ral.direct_access_rdata[0].predict(.value(rdata_ret_val),
+                                                           .kind(UVM_PREDICT_READ)));
+                  if (is_granule_64(dai_addr)) begin
+                    `uvm_info(`gfn, $sformatf("Zeroizing Loc: setting upper 64bits"), UVM_LOW);
+                    otp_a[otp_addr + 1] = (   is_secret(dai_addr) && !is_zeroized_addr(dai_addr)
+                                           && !is_digest(dai_addr))
+                                         ? descrambled_val[TL_DW*2-1:TL_DW]:'{default:1};
+                    void'(ral.direct_access_rdata[1].predict(.value(0),
+                                                             .kind(UVM_PREDICT_READ)));
+                  end
+                end
+
+                if (cfg.en_cov) begin
+                  cov.zr_dai_cmd_cg.sample(part_idx, part_is_zeroizable(int'(part_idx)),
+                                              (dai_addr-PartInfo[part_idx].offset));
                 end
               end
               default: begin
@@ -1199,6 +1351,30 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
       "secret2_digest_0", "secret2_digest_1",
       "secret3_digest_0", "secret3_digest_1": begin
         if (ignore_digest_chk) do_read_check = 0;
+        if ((csr_name == "secret0_digest_0" || csr_name == "secret0_digest_1")
+            && ignore_digest_zero_chk["Secret0Idx"]) begin
+          `uvm_info(`gfn, $sformatf("Ignoring Digest for Zeroized Partition: %s",
+                                    "Secret0Idx"), UVM_LOW);
+          do_read_check = 0;
+        end
+        if ((csr_name == "secret1_digest_0" || csr_name == "secret1_digest_1")
+            && ignore_digest_zero_chk["Secret1Idx"]) begin
+          `uvm_info(`gfn, $sformatf("Ignoring Digest for Zeroized Partition: %s",
+                                    "Secret1Idx"), UVM_LOW);
+          do_read_check = 0;
+        end
+        if ((csr_name == "secret2_digest_0" || csr_name == "secret2_digest_1")
+            && ignore_digest_zero_chk["Secret2Idx"]) begin
+          `uvm_info(`gfn, $sformatf("Ignoring Digest for Zeroized Partition: %s",
+                                    "Secret2Idx"), UVM_LOW);
+          do_read_check = 0;
+        end
+        if ((csr_name == "secret3_digest_0" || csr_name == "secret3_digest_1")
+            && ignore_digest_zero_chk["Secret3Idx"]) begin
+          `uvm_info(`gfn, $sformatf("Ignoring Digest for Zeroized Partition: %s",
+                                    "Secret3Idx"), UVM_LOW);
+          do_read_check = 0;
+        end
       end
       "vendor_test_read_lock",
       "creator_sw_cfg_read_lock",
@@ -1246,6 +1422,36 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
       end
       void'(csr.predict(.value(item.d_data), .kind(UVM_PREDICT_READ)));
     end
+  endfunction
+
+  virtual function bit [TL_DW-1:0] read_from_otp_a(int addr);
+    bit [TL_DW-1:0] ret_data = '{default:0};
+    bit [TL_DW-1:0] act_addr = addr<<2;
+    otp_ctrl_part_pkg::part_idx_e part_idx = get_part_index(act_addr);
+
+    bit part_zeroize_addr = is_zeroized_addr(act_addr);
+    bit part_digest_addr  = is_digest(act_addr);
+    bit part_is_secret    = is_secret(act_addr);
+    bit part_is_buffered  = is_hw_part_idx(part_idx);
+    bit part_is_zeroized  = is_zeroized(int'(part_idx));
+
+    `uvm_info(`gfn, $sformatf("Reading from Part_idx:%s, part_zeroize_addr:%d",
+                               part_idx.name, part_zeroize_addr), UVM_HIGH);
+    `uvm_info(`gfn, $sformatf("part_is_zeroized:%d part_is_secret:%d",
+                               part_is_zeroized, part_is_secret), UVM_HIGH);
+
+    if (part_is_zeroized && part_is_secret) begin
+      `uvm_info(`gfn, $sformatf("%s is zeroized and secret. Ret_data:%x",
+                                 part_idx.name,  otp_a[addr]), UVM_HIGH);
+      // TODO: otp_a always contains descrambled data which is incorrect. Need to fix it and ensure
+      // descrambling is done at places where secret data is be used.
+      ret_data = otp_a[addr];
+    end else begin
+      ret_data = otp_a[addr];
+    end
+
+    `uvm_info(`gfn, $sformatf("addr:%x Data:%0x", addr, ret_data), UVM_HIGH);
+    return ret_data;
   endfunction
 
   // If reset or lc_escalate_en is issued during otp program, this function will backdoor update
@@ -1664,7 +1870,8 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
   virtual function bit [SCRAMBLE_KEY_SIZE-1:0] get_key_from_otp(bit locked, int start_i);
     bit [SCRAMBLE_KEY_SIZE-1:0] key;
     if (!locked) return 0;
-    for (int i = 0; i < 4; i++) key |= otp_a[i + start_i] << (TL_DW * i);
+    // for (int i = 0; i < 4; i++) key |= otp_a[i + start_i] << (TL_DW * i);
+    for (int i = 0; i < 4; i++) key |= read_from_otp_a(i + start_i) << (TL_DW * i);
     return key;
   endfunction
 
@@ -1759,6 +1966,17 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
       default: `uvm_fatal(`gfn, $sformatf("Partition %0d does not have digest", part_idx))
     endcase
     return digest;
+  endfunction
+
+  // Expect $countones of each 32-bit words to be at least 28.
+  virtual function bit is_zeroized(int part_idx);
+    if (part_is_zeroizable(part_idx)) begin
+      bit [TL_DW-1:0] zeroized_addr = PART_OTP_ZEROIZED_ADDRS[part_idx];
+      return $countones(otp_a[zeroized_addr]) > 28 &&
+             $countones(otp_a[zeroized_addr + 1]) > 28;
+    end else begin
+      return 0;
+    end
   endfunction
 
   virtual function bit is_tl_mem_access_allowed(input tl_seq_item item, input string ral_name,

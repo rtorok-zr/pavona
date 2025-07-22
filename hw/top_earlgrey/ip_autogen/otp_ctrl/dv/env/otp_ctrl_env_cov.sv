@@ -150,6 +150,8 @@ class otp_ctrl_env_cov extends cip_base_env_cov #(.CFG_T(otp_ctrl_env_cfg));
   otp_ctrl_csr_rd_after_alert_cg_wrap csr_rd_after_alert_cg_wrap;
   otp_ctrl_unbuf_access_lock_cg_wrap  unbuf_access_lock_cg_wrap[NumPartUnbuf];
 
+
+
   bit_toggle_cg_wrap lc_prog_cg;
   bit_toggle_cg_wrap otbn_req_cg;
   bit_toggle_cg_wrap status_csr_cg[OtpStatusFieldSize];
@@ -279,6 +281,30 @@ class otp_ctrl_env_cov extends cip_base_env_cov #(.CFG_T(otp_ctrl_env_cfg));
     dai_access_secret2: cross lc_creator_seed_sw_rw_en, dai_access_cmd;
   endgroup
 
+
+  covergroup zr_dai_cmd_cg with function sample(
+        otp_ctrl_part_pkg::part_idx_e part_idx, bit zeroizible, bit [TL_AW-1:0] offset_addr);
+    partitions          : coverpoint part_idx;
+    part_zeroizible     : coverpoint zeroizible;
+    dai_part_offset_addr: coverpoint offset_addr;
+
+    zeroized_partition: cross partitions, zeroizible, dai_part_offset_addr;
+  endgroup
+
+  covergroup zr_partition_read_cg with function sample(
+        otp_ctrl_part_pkg::part_idx_e part_idx, bit is_secret, bit has_digest,
+        bit digest_set, bit access_error);
+    partitions: coverpoint part_idx;
+    secret_partition: coverpoint is_secret;
+    part_has_digest : coverpoint has_digest;
+    part_digest_set : coverpoint digest_set;
+    error_seen      : coverpoint access_error;
+
+    all: cross partitions, is_secret, has_digest, digest_set, access_error;
+  endgroup
+
+
+
   function new(string name, uvm_component parent);
     super.new(name, parent);
     // Create coverage from local covergroups.
@@ -291,6 +317,9 @@ class otp_ctrl_env_cov extends cip_base_env_cov #(.CFG_T(otp_ctrl_env_cfg));
     dai_err_code_cg               = new();
     lci_err_code_cg               = new();
     dai_access_secret2_cg         = new();
+
+    zr_dai_cmd_cg        = new();
+    zr_partition_read_cg = new();
   endfunction : new
 
   virtual function void build_phase(uvm_phase phase);

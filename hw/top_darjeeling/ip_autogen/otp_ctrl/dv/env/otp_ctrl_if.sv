@@ -392,7 +392,6 @@ interface otp_ctrl_if(input clk_i, input rst_ni);
   `ASSERT(CioTestEnOWithDftOff_A, lc_dft_en_i != lc_ctrl_pkg::On |->
                                   ##[2:3] lc_dft_en_i == lc_ctrl_pkg::On || cio_test_en_o == 0)
 
-
   `define OTP_ASSERT_WO_LC_ESC(NAME, SEQ) \
     `ASSERT(NAME, SEQ, clk_i, !rst_ni || lc_esc_on || alert_reqs)
 
