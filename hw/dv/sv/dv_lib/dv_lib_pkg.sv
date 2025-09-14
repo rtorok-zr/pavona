@@ -1,4 +1,5 @@
 // Copyright lowRISC contributors (OpenTitan project).
+// Copyright zeroRISC Inc
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -18,6 +19,12 @@ package dv_lib_pkg;
   string msg_id = "dv_lib_pkg";
 
   // package sources
+  // UVM Wrapper classes that become the primary base classes for all DV code
+  `include "dv_pair.sv"
+  `include "dv_callback.sv"
+  `include "dv_monitor.sv"
+  `include "dv_sequencer_list.sv"
+
   // base agent
   `include "dv_base_agent_cfg.sv"
   `include "dv_base_agent_cov.sv"
@@ -25,6 +32,9 @@ package dv_lib_pkg;
   `include "dv_base_sequencer.sv"
   `include "dv_base_driver.sv"
   `include "dv_base_agent.sv"
+
+  `include "dv_rst_safe_base_driver.sv"
+  `include "dv_rst_safe_base_monitor.sv"
 
   // base seq
   `include "dv_base_seq.sv"
