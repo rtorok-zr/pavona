@@ -1,3 +1,7 @@
+/* Copyright zeroRISC Inc. */
+/* Licensed under the Apache License, Version 2.0, see LICENSE for details. */
+/* SPDX-License-Identifier: Apache-2.0 */
+
 /* Copyright lowRISC contributors (OpenTitan project). */
 /* Licensed under the Apache License, Version 2.0, see LICENSE for details. */
 /* SPDX-License-Identifier: Apache-2.0 */
@@ -210,11 +214,41 @@ mode:
 n:
 .zero 512
 
+/* RSA private cofactor (p), up to 2048 bits. Used for CRT signing. */
+.globl p
+.balign 32
+p:
+.zero 256
+
+/* RSA private cofactor (q), up to 2048 bits. Used for CRT signing. */
+.globl q
+.balign 32
+q:
+.zero 256
+
 /* RSA private exponent (d) for signing, up to 4096 bits. */
 .globl d
 .balign 32
 d:
 .zero 512
+
+/* RSA private exponent CRT component (d_p) for signing, up to 2048 bits. */
+.globl d_p
+.balign 32
+d_p:
+.zero 256
+
+/* RSA private exponent CRT component (d_q) for signing, up to 2048 bits. */
+.globl d_q
+.balign 32
+d_q:
+.zero 256
+
+/* RSA CRT coefficient (i_q) for signing, up to 2048 bits. */
+.globl i_q
+.balign 32
+i_q:
+.zero 256
 
 /**
  * Buffer used for both input and output, up to 4096 bits.
@@ -226,7 +260,6 @@ d:
 .globl inout
 inout:
 .zero 512
-
 
 /* Montgomery constant m0'. Filled by `modload`. */
 /* Note: m0' could go in scratchpad if there was space. */

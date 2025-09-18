@@ -1,3 +1,7 @@
+/* Copyright zeroRISC Inc. */
+/* Licensed under the Apache License, Version 2.0, see LICENSE for details. */
+/* SPDX-License-Identifier: Apache-2.0 */
+
 /* Copyright lowRISC Contributors.
  * Copyright 2016 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
@@ -11,6 +15,7 @@
 .text
 .globl modexp_65537
 .globl modexp
+.globl modexp_crt
 
 /**
  * Conditionally overwrite bigint in dmem
@@ -171,6 +176,307 @@ modexp:
   addi      x19, x2, 0
   addi      x21, x2, 0
   jal       x1, montmul_mul1
+
+  ret
+
+/**
+ * Constant-time bigint CRT modular exponentiation
+ *
+ * Returns: TODO
+ *
+ * @param[in]   x2: dptr_c, dmem pointer to buffer for output C
+ * @param[in]   x3: dptr_exp, ... 
+ * @param[in]   x4: dptr_reduce, ... 
+ * @param[in]  x17: dptr_m0d, dmem pointer to first limb of m0'
+ * @param[in]  x18: dptr_RR, dmem pointer to first limb of RR
+ * @param[in]  x23: dptr_a, dmem pointer to first limb of input A
+ * @param[in]  x25: dptr_e_p, dmem pointer to first limb of exponent CRT component E_p
+ * @param[in]  x26: dptr_e_q, dmem pointer to first limb of exponent CRT component E_q
+ * @param[in]  x27: dptr_p, dmem pointer to first limb of cofactor p (n limbs)
+ * @param[in]  x28: dptr_q, dmem pointer to first limb of cofactor q (n limbs)
+ * @param[in]  x29: dptr_q_p, dmem pointer to first limb of CRT coefficient q_p
+ * @param[in]  x30: N, number of limbs per bignum
+ * @param[in]  w31: all-zero
+ * @param[out] dmem[dptr_c:dptr_c+N*32] C, A^E mod M
+ *
+ * clobbered registers: x3 to x13, x16 to x31
+ *                      w0 to w3, w24 to w30
+ *                      w4 to w[4+N-1]
+ * clobbered Flag Groups: FG0, FG1
+ */
+modexp_crt:
+  /* temporarially halve the limb count to copy a cofactor
+       x30 <= N >> 1 = N / 2 */
+  srli      x30, x30, 1
+
+  /* copy the second cofactor, q, into the exp buffer to zero-extend
+       dmem[dptr_exp:dptr_exp+(N/2)*32] <= p */
+  addi      x11, x28, 0
+  addi      x12, x3, 0
+  li        x20, 20
+  loop      x30, 2
+    bn.lid    x20, 0(x11++)
+    bn.sid    x20, 0(x12++)
+
+  /* zero out the remainder of the exp region to perform the zero-extend 
+       dmem[dptr_exp+(N/2)*32:dptr_exp+N*32] <= 0 */
+  li        x31, 31
+  loop      x30, 1
+    bn.sid    x31, 0(x12++) 
+
+  /* restore the limb count provided 
+       x30 <= 2*(N/2) = N */
+  add       x30, x30, x30
+
+  /* copy the message to the reduce buffer for in-place reduction 
+       dmem[dptr_reduce:dptr_reduce+N*32] <= A */
+  addi      x11, x23, 0
+  addi      x12, x4, 0
+  loop      x30, 2
+    bn.lid    x20, 0(x11++)
+    bn.sid    x20, 0(x12++)
+
+  /* compute input A modulo seocnd cofactor, q
+       dmem[dptr_reduce:dptr_reduce+N*32] <= A mod q */
+  addi      x10, x4, 0
+  addi      x11, x3, 0
+  addi      x12, x2, 0
+
+  addi      x6, x23, 0
+  addi      x7, x25, 0
+  addi      x9, x26, 0
+
+  jal       x1, div
+
+  addi      x4, x10, 0
+  addi      x3, x11, 0
+  addi      x2, x12, 0
+
+  addi      x23, x6, 0
+  addi      x25, x7, 0
+  addi      x26, x9, 0
+
+  /* temporarially halve the limb count to compute a base modexp
+       x30 <= N >> 1 = N / 2 */
+  srli      x30, x30, 1
+
+  /* compute Montgomery constants for q */
+  addi     x16, x28, 0
+  addi     x14, x2, 0
+  addi     x15, x3, 0
+  jal      x1, modload
+  addi     x2, x14, 0
+  addi     x3, x15, 0
+
+  /* compute q-component of modexp result
+       dmem[dptr_c:dptr_c+(N/2)*32] <= C_q = A_q^(E_q) mod q */
+  addi      x14, x4, 0
+  addi      x4, x3, 0
+  addi      x15, x26, 0
+  addi      x16, x28, 0
+  jal       x1, modexp
+  addi      x3, x4, 0
+  addi      x4, x14, 0
+
+  /* copy the the q-component of the modexp result over E_q 
+       dmem[dptr_e_q:dptr_e_q+(N/2)*32] <= C_q */
+  addi      x11, x2, 0
+  addi      x12, x26, 0
+  li        x20, 20
+  loop      x30, 2
+    bn.lid    x20, 0(x11++)
+    bn.sid    x20, 0(x12++)
+
+  /* copy the first cofactor, p, into the exp buffer to zero-extend
+       dmem[dptr_exp:dptr_exp+(N/2)*32] <= p */
+  addi      x11, x27, 0
+  addi      x12, x3, 0
+  loop      x30, 2
+    bn.lid    x20, 0(x11++)
+    bn.sid    x20, 0(x12++)
+
+  /* zero out the remainder of the exp region to perform the zero-extend 
+       dmem[dptr_exp+(N/2)*32:dptr_exp+N*32] <= 0 */
+  li        x31, 31
+  loop      x30, 1
+    bn.sid    x31, 0(x12++) 
+
+  /* restore the limb count provided 
+       x30 <= 2*(N/2) = N */
+  add       x30, x30, x30
+
+  /* copy the message to the reduce buffer for in-place reduction 
+       dmem[dptr_reduce:dptr_reduce+N*32] <= A */
+  addi      x11, x23, 0
+  addi      x12, x4, 0
+  loop      x30, 2
+    bn.lid    x20, 0(x11++)
+    bn.sid    x20, 0(x12++)
+
+  /* compute input A modulo first cofactor, p 
+       dmem[dptr_exp:dptr_exp+N*32] <= A mod p */
+  addi      x10, x4, 0
+  addi      x11, x3, 0
+  addi      x12, x2, 0
+
+  addi      x6, x23, 0
+  addi      x7, x25, 0
+  addi      x9, x26, 0
+
+  jal       x1, div
+
+  addi      x4, x10, 0
+  addi      x3, x11, 0
+  addi      x2, x12, 0
+
+  addi      x23, x6, 0
+  addi      x25, x7, 0
+  addi      x26, x9, 0
+
+  /* temporarially halve the limb count to compute a base modexp
+       x30 <= N >> 1 = N / 2 */
+  srli      x30, x30, 1
+
+  /* compute Montgomery constants for p */
+  addi     x16, x27, 0
+  addi     x14, x2, 0
+  addi     x15, x3, 0
+  jal      x1, modload
+  addi     x2, x14, 0
+  addi     x3, x15, 0
+
+  /* compute p-component of modexp result
+       dmem[dptr_c:dptr_c+(N/2)*32] <= C_p = A_p^(E_p) mod p */
+  addi      x14, x4, 0
+  addi      x15, x25, 0 
+  addi      x16, x27, 0
+  addi      x4, x3, 0
+  jal       x1, modexp
+  addi      x3, x4, 0
+  addi      x4, x14, 0
+
+  /* copy the the p-component of the modexp result over E_p 
+       dmem[dptr_e_p:dptr_e_p+(N/2)*32] <= C_p */
+  addi      x11, x2, 0
+  addi      x12, x25, 0
+  li        x20, 20
+  loop      x30, 2
+    bn.lid    x20, 0(x11++)
+    bn.sid    x20, 0(x12++)
+
+  /* clear any flags in FG0 */
+  bn.sub    w31, w31, w31, FG0
+
+  /* compare C_p and C_q
+       FG0.C <= C_p > C_q */
+  addi       x11, x25, 0
+  addi       x12, x26, 0
+  li         x21, 21
+  loop       x30, 3
+    /* w20 <= C_p[i] */
+    bn.lid   x20, 0(x11++)
+    /* w21 <= C_q[i] */
+    bn.lid   x21, 0(x12++)
+    /* FG0.C <= C_p[i] <? C_q[i] + FG0.C */
+    bn.cmpb  w20, w21, FG0
+
+  /* capture FG0.C in a mask
+       w23 <= FG0.C ? 2^256 - 1 : 0 */
+  bn.subb  w23, w31, w31
+
+  /* clear any flags in both flag groups */
+  bn.sub    w31, w31, w31, FG0
+  bn.sub    w31, w31, w31, FG1
+
+  /* subtract C_p from C_q, conditionally adding the modulus if C_p > C_q
+       dmem[dptr_e_q..dptr_e_q+(N/2)*32] <= C_q - C_p mod p */
+  addi       x11, x25, 0
+  addi       x12, x26, 0
+  addi       x13, x27, 0
+  loop       x30, 7
+    /* w20 <= C_p[i] */
+    bn.lid   x20, 0(x11)
+    /* w21 <= C_q[i] */
+    bn.lid   x21, 0(x12++)
+    /* w20, FG0.C <= C_p[i] - C_q[i] - FG0.C */
+    bn.subb  w20, w20, w21, FG0
+    /* w21 <= p[i] */
+    bn.lid   x21, 0(x13++)
+    /* w21 <= p[i] & w23 */
+    bn.and   w21, w21, w23
+    /* w20, FG1.C <= w20 + w21 + FG1.C  */
+    bn.addc  w20, w20, w21, FG1
+    /* dmem[dptr_e_p..dptr_e_q+(plen*32)] <= w20 */
+    bn.sid   x20, 0(x11++)
+
+  /* preserve a */
+  addi      x9, x23, 0
+
+  /* multiply difference by q_p, inverse of q mod p 
+      dmem[dptr_c..dptr_c+(N/2)*32] <= q_p * (C_q - C_p) */
+  addi      x10, x25, 0
+  addi      x11, x29, 0
+  addi      x12, x2, 0
+  addi      x13, x3, 0
+  addi      x14, x4, 0
+  jal       x1, bignum_mul
+  addi      x2, x12, 0
+  addi      x3, x13, 0
+  addi      x4, x14, 0
+
+  /* restore the limb count provided 
+       x30 <= 2*(N/2) = N */
+  add       x30, x30, x30
+
+  /* reduce mod p
+      dmem[dptr_c..dptr_c+(N/2)*32] <= h = q_p * (C_q - C_p) mod p */
+  addi      x10, x2, 0
+  addi      x11, x3, 0 
+  addi      x12, x4, 0
+  addi      x13, x26, 0
+  jal       x1, div
+  addi      x2, x10, 0
+  addi      x3, x11, 0
+  addi      x4, x12, 0
+  addi      x26, x13, 0
+
+  /* temporarially halve the limb count to copy a cofactor
+       x30 <= N >> 1 = N / 2 */
+  srli      x30, x30, 1
+
+  /* multiply result by q */
+  addi      x10, x2, 0
+  addi      x11, x28, 0
+  addi      x12, x9, 0
+  jal       x1, bignum_mul
+  addi      x2, x10, 0
+  addi      x3, x12, 0
+
+  /* finally, add C_q to the result and write it back */ 
+  addi     x11, x9, 0 
+  addi     x12, x26, 0
+  addi     x13, x2, 0
+  loop     x30, 4
+    /* w20 <= (h * q)[i] */
+    bn.lid   x20, 0(x11++)
+    /* w20 <= C_q[i] */
+    bn.lid   x21, 0(x12++)
+    /* w20, FG0.C <= (h * q)[i] + C_q[i] + FG0.C */
+    bn.addc  w20, w20, w21
+    /* dmem[dptr_c..dptr_c+(N/2)*32] <= w20 */
+    bn.sid   x20, 0(x13++)
+
+  loop     x30, 3
+    /* w20 <= (h * q)[N/2 + i] */
+    bn.lid   x20, 0(x11++)
+    /* w20, FG0.C <= w[4 + N/2 + i] + FG0.C */
+    bn.addc  w20, w20, w31
+    /* dmem[dptr_c..dptr_c+(N/2)*32] <= w20 */
+    bn.sid   x20, 0(x13++)
+
+  /* restore the limb count provided 
+       x30 <= 2*(N/2) = N */
+  add       x30, x30, x30
 
   ret
 
