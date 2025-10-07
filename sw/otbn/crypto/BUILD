@@ -262,8 +262,10 @@ otbn_binary(
         "rsa.s",
     ],
     deps = [
+        ":div",
         ":modexp",
         ":montmul",
+        ":mul",
     ],
 )
 
