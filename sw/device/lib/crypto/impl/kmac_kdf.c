@@ -49,10 +49,6 @@ otcrypto_status_t otcrypto_kmac_kdf(
   HARDENED_CHECK_EQ(integrity_blinded_key_check(key_derivation_key),
                     kHardenedBoolTrue);
 
-  // Check `key_len` is supported by KMAC HWIP.
-  // The set of supported key sizes is {128, 192, 256, 384, 512}.
-  HARDENED_TRY(kmac_key_length_check(key_derivation_key->config.key_length));
-
   kmac_blinded_key_t kmac_key = {
       .share0 = NULL,
       .share1 = NULL,

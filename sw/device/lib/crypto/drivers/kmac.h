@@ -58,15 +58,6 @@ typedef struct kmac_blinded_key {
 } kmac_blinded_key_t;
 
 /**
- * Check whether given key length is valid for KMAC.
-
- * @param key_len Key length as input.
- * @return Return OTCRYPTO_OK if valid and otherwise an error.
- */
-OT_WARN_UNUSED_RESULT
-status_t kmac_key_length_check(size_t key_len);
-
-/**
  * Set the "global" config of HWIP
  *
  * For the moment, we have a number of configuation options needs to be
@@ -90,6 +81,108 @@ status_t kmac_key_length_check(size_t key_len);
  */
 OT_WARN_UNUSED_RESULT
 status_t kmac_hwip_default_configure(void);
+
+/**
+ * Start a SHAKE-128 operation.
+ *
+ * Blocks until KMAC is idle.
+ *
+ * Make sure to call `kmac_process` and `kmac_squeeze_end` at some later point
+ * to return the block to an idle state.
+ *
+ * @return Error code.
+ */
+OT_WARN_UNUSED_RESULT
+status_t kmac_shake128_begin(void);
+
+/**
+ * Start a SHAKE-256 operation.
+ *
+ * Blocks until KMAC is idle.
+ *
+ * Make sure to call `kmac_process` and `kmac_squeeze_end` at some later point
+ * to return the block to an idle state.
+ *
+ * @return Error code.
+ */
+OT_WARN_UNUSED_RESULT
+status_t kmac_shake256_begin(void);
+
+/**
+ * Absorb a message for an ongoing operation.
+ *
+ * The operation must have been started before calling this. May be called
+ * repeatedly.
+ *
+ * Make sure to call `kmac_process` and `kmac_squeeze_end` at some later point
+ * to return the block to an idle state.
+ *
+ * @param message Message data to absorb.
+ * @param message_len Message length in bytes.
+ * @return Error code.
+ */
+OT_WARN_UNUSED_RESULT
+status_t kmac_absorb(const uint8_t *message, size_t message_len);
+
+/**
+ * Tell KMAC to start processing the message.
+ *
+ * The operation must have been started before calling this.
+ *
+ * Make sure to call `kmac_squeeze_end` at some later point to return the block
+ * to an idle state.
+ */
+void kmac_process(void);
+
+/**
+ * Read generated output from a SHA-3, SHAKE, cSHAKE, or KMAC operation.
+ *
+ * This operation expects that the process command has already been sent; call
+ * `kmac_process` first.
+ *
+ * May be called repeatedly; does not return the hardware to its idle state
+ * after reading the requested output. Always call `kmac_squeeze_end`
+ * afterwards to clean up.
+ *
+ * The caller must ensure that there is an amount of space matching the Keccak
+ * rate times the number of blocks available at `blocks_share0`. If
+ * `read_masked` is set, there must also be the same amount of space available
+ * at `blocks_share1`; otherwise, `blocks_share1` is ignored and may be NULL.
+ *
+ * @param nblocks Number of state blocks to read.
+ * @param read_masked Whether to return the digest in two shares.
+ * @param[out] blocks_share0 Destination for output (share if `read_masked`).
+ * @param[out] blocks_share1 Destination for share of output (if `read_masked`).
+ * @return Error code.
+ */
+OT_WARN_UNUSED_RESULT
+status_t kmac_squeeze_blocks(size_t nblocks, hardened_bool_t read_masked,
+                             uint32_t *blocks_share0, uint32_t *blocks_share1);
+
+/**
+ * Finish reading output from a SHA-3, SHAKE, cSHAKE, or KMAC operation.
+ *
+ * This operation expects that the process command has already been sent; call
+ * `kmac_process` first.
+ *
+ * Unlike `kmac_squeeze_blocks`, returns the hardware to its idle state after
+ * reading the requested output.
+ *
+ * The caller must ensure that there are `digest_wordlen` words available at
+ * `digest_share0`. If `digest_wordlen` is 0, then both shares are ignored and
+ * may be NULL. If `read_masked` is set, there must also be the same amount of
+ * space available at `digest_share1`; otherwise, `digest_share1` is ignored
+ * and may be NULL.
+ *
+ * @param digest_wordlen Requested digest length in 32-bit words.
+ * @param read_masked Whether to return the digest in two shares.
+ * @param[out] digest_share0 Destination for output (share if `read_masked`).
+ * @param[out] digest_share1 Destination for share of output (if `read_masked`).
+ * @return Error code.
+ */
+OT_WARN_UNUSED_RESULT
+status_t kmac_squeeze_end(size_t digest_wordlen, hardened_bool_t read_masked,
+                          uint32_t *digest_share0, uint32_t *digest_share1);
 
 /**
  * Compute SHA-3-224 in one-shot.

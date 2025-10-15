@@ -45,17 +45,13 @@ otcrypto_status_t otcrypto_kmac(otcrypto_blinded_key_t *key,
   // Ensure the entropy complex is initialized.
   HARDENED_TRY(entropy_complex_check());
 
-  size_t key_len = keyblob_share_num_words(key->config) * sizeof(uint32_t);
-
-  // Check `key_len` is valid/supported by KMAC HWIP.
-  HARDENED_TRY(kmac_key_length_check(key_len));
-
   // Check the integrity of the blinded key.
   if (launder32(integrity_blinded_key_check(key)) != kHardenedBoolTrue) {
     return OTCRYPTO_BAD_ARGS;
   }
   HARDENED_CHECK_EQ(integrity_blinded_key_check(key), kHardenedBoolTrue);
 
+  size_t key_len = keyblob_share_num_words(key->config) * sizeof(uint32_t);
   kmac_blinded_key_t kmac_key = {
       .share0 = NULL,
       .share1 = NULL,
