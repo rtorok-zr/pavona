@@ -37,6 +37,7 @@ static uint32_t kTestModulus[kRsa2048NumWords] = {
     0x639f9975, 0x5948488b, 0x1d3d9cd7, 0x28c7956b, 0xebb97a3e, 0x1edbf4e2,
     0x105cc797, 0x924ec514, 0x146810df, 0xb1ab4a49,
 };
+
 // The prime cofactor p for the test private key.
 static uint32_t kTestPrimeP[kRsa2048CofactorNumWords] = {
     0x69e8cdeb, 0xaab5698,  0x2adbf5a2, 0xc6f3fed7, 0x9b0f148c, 0x68a4b636,
@@ -46,6 +47,7 @@ static uint32_t kTestPrimeP[kRsa2048CofactorNumWords] = {
     0xa13ff562, 0xd12a0242, 0x3ef684a4, 0x5241db6e, 0x2e68b5f5, 0xaa3e5397,
     0x45e9606a, 0xb8505888,
 };
+
 // The prime cofactor q for the test private key.
 static uint32_t kTestPrimeQ[kRsa2048CofactorNumWords] = {
     0xc69864d3, 0x6eca1793, 0xd985ff65, 0xa888cce8, 0xcadcabc5, 0x47d31ff8,
@@ -111,6 +113,7 @@ static otcrypto_key_mode_t kTestKeyMode = kOtcryptoKeyModeRsaSignPss;
  * exponent matches the test private exponent.
  *
  * @param cofactor Pointer to the cofactor data.
+ * @param cofactor_is_p Whether the provided cofactor is kTestPrimeP.
  * @return OK or error.
  */
 static status_t run_key_from_cofactor(const uint32_t *cofactor,

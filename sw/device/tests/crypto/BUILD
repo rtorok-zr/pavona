@@ -752,6 +752,46 @@ opentitan_test(
 )
 
 opentitan_test(
+    name = "rsa_3072_key_from_cofactor_functest",
+    srcs = ["rsa_3072_key_from_cofactor_functest.c"],
+    exec_env = CRYPTOTEST_EXEC_ENVS,
+    verilator = verilator_params(
+        timeout = "long",
+        # This test can take > 60 minutes, so mark it manual as it shouldn't
+        # run in CI/nightlies.
+        tags = ["manual"],
+    ),
+    deps = [
+        "//sw/device/lib/crypto/impl:rsa",
+        "//sw/device/lib/crypto/impl:sha2",
+        "//sw/device/lib/crypto/impl/rsa:rsa_datatypes",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:profile",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
+opentitan_test(
+    name = "rsa_4096_key_from_cofactor_functest",
+    srcs = ["rsa_4096_key_from_cofactor_functest.c"],
+    exec_env = CRYPTOTEST_EXEC_ENVS,
+    verilator = verilator_params(
+        timeout = "long",
+        # This test can take > 60 minutes, so mark it manual as it shouldn't
+        # run in CI/nightlies.
+        tags = ["manual"],
+    ),
+    deps = [
+        "//sw/device/lib/crypto/impl:rsa",
+        "//sw/device/lib/crypto/impl:sha2",
+        "//sw/device/lib/crypto/impl/rsa:rsa_datatypes",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:profile",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
+opentitan_test(
     name = "rsa_2048_keygen_functest",
     srcs = ["rsa_2048_keygen_functest.c"],
     # This test is too slow for Verilator/DV, so target FPGA only.
