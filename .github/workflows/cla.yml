@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: "CLA Assistant"
         if: (github.event.comment.body == 'recheck' || github.event_name == 'pull_request_target')
-        uses: pavona/cla-assistant@v0.1.1
+        uses: pavona/cla-assistant@v0.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Token grants access to store signatures in remote repository.
