@@ -1003,7 +1003,6 @@ cc_library(
     srcs = ["epmp.c"],
     hdrs = ["epmp.h"],
     deps = [
-        "//hw/top_egret/sw/autogen:top_egret",
         "//sw/device/lib/base:bitfield",
         "//sw/device/lib/base:csr",
         "//sw/device/lib/base:hardened",

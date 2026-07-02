@@ -661,7 +661,7 @@ cc_library(
         "//sw/device/lib/base:hardened_memory",
         "//sw/device/lib/base:macros",
         "//sw/device/lib/base:multibits",
-        "//sw/device/silicon_creator/lib:dbg_print",
+        "//sw/device/silicon_creator/lib/drivers:epmp",
         "//sw/device/silicon_creator/lib/drivers:ibex",
         "//sw/device/silicon_creator/lib/drivers:otp",
         "//sw/device/silicon_creator/lib/sigverify",

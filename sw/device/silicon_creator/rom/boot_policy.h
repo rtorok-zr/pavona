@@ -5,10 +5,13 @@
 #ifndef OPENTITAN_SW_DEVICE_SILICON_CREATOR_ROM_BOOT_POLICY_H_
 #define OPENTITAN_SW_DEVICE_SILICON_CREATOR_ROM_BOOT_POLICY_H_
 
-#include "sw/device/silicon_creator/lib/boot_data.h"
 #include "sw/device/silicon_creator/lib/drivers/lifecycle.h"
 #include "sw/device/silicon_creator/lib/error.h"
 #include "sw/device/silicon_creator/lib/manifest.h"
+
+#ifdef HAS_FLASH_CTRL
+#include "sw/device/silicon_creator/lib/boot_data.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,7 +23,7 @@ extern "C" {
  * The entry point address obtained from the ROM_EXT manifest must be cast to a
  * pointer to this type before being called.
  */
-typedef void rom_ext_entry_point(void);
+typedef void entry_point(void);
 
 /**
  * Manifests of ROM_EXTs in descending order according to their security
@@ -32,7 +35,11 @@ typedef struct boot_policy_manifests {
   /**
    * ROM_EXT manifests in descending order according to their security versions.
    */
+#ifdef HAS_FLASH_CTRL
   const manifest_t *ordered[2];
+#else
+  const manifest_t *ordered[1];
+#endif
 } boot_policy_manifests_t;
 
 /**
@@ -47,6 +54,7 @@ typedef struct boot_policy_manifests {
 OT_WARN_UNUSED_RESULT
 boot_policy_manifests_t boot_policy_manifests_get(void);
 
+#ifdef HAS_FLASH_CTRL
 /**
  * Checks the fields of a ROM_EXT manifest.
  *
@@ -61,7 +69,7 @@ boot_policy_manifests_t boot_policy_manifests_get(void);
 OT_WARN_UNUSED_RESULT
 rom_error_t boot_policy_manifest_check(const manifest_t *manifest,
                                        const boot_data_t *boot_data);
-
+#endif
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus

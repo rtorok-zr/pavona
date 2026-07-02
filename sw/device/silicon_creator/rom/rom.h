@@ -18,10 +18,12 @@ extern "C" {
  */
 static OT_WARN_UNUSED_RESULT rom_error_t rom_state_init(void *arg,
                                                         uint32_t *next_state);
+#ifdef HAS_FLASH_CTRL
 static OT_WARN_UNUSED_RESULT rom_error_t
 rom_state_bootstrap_check(void *arg, uint32_t *next_state);
 static OT_WARN_UNUSED_RESULT rom_error_t
 rom_state_bootstrap(void *arg, uint32_t *next_state);
+#endif
 static OT_WARN_UNUSED_RESULT rom_error_t
 rom_state_boot_rom_ext(void *arg, uint32_t *next_state);
 

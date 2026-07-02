@@ -47,27 +47,60 @@ extern "C" {
  */
 void rom_epmp_state_init(lifecycle_state_t lc_state);
 
-/**
- * Unlocks the provided ROM_EXT image region with read-execute permissions.
- *
- * The provided ePMP state is also updated to reflect the changes made to the
- * hardware configuration.
- *
- * @param region Region for executable sections in ROM_EXT image.
- */
-void rom_epmp_unlock_rom_ext_rx(epmp_region_t region);
+/* Helpers to get register addresses in rom_epmp_start.S . */
 
 /**
- * Unlocks the provided ROM_EXT image region with read-only permissions.
- *
- * The provided ePMP state is also updated to reflect the changes made to the
- * hardware configuration.
- * The image size must be power of 2 as this function uses NAPOT
- * (Naturally-Aligned-Power-Of-Two) addressing mode.
- *
- * @param region Region in the ROM_EXT image to receive read-only permission.
+ * Base address of the ROM.
  */
-void rom_epmp_unlock_rom_ext_r(epmp_region_t region);
+uint32_t rom_ctrl_rom_base(void);
+/**
+ * Size of the ROM.
+ */
+uint32_t rom_ctrl_rom_size(void);
+/**
+ * NAPOT encoding of the ROM region.
+ */
+uint32_t rom_ctrl_rom_napot(void);
+#ifdef HAS_FLASH_CTRL
+/**
+ * Base address of the flash memory.
+ */
+uint32_t flash_ctrl_mem_base(void);
+/**
+ * Size of the flash memory.
+ */
+uint32_t flash_ctrl_mem_size(void);
+/**
+ * NAPOT encoding of the Flash memory region.
+ */
+uint32_t flash_ctrl_mem_napot(void);
+
+#else
+/**
+ * Base address of the flash memory.
+ */
+uint32_t soc_proxy_ctn_base(void);
+/**
+ * Size of the flash memory.
+ */
+uint32_t soc_proxy_ctn_size(void);
+/**
+ * NAPOT encoding of the CTN SRAM region.
+ */
+uint32_t soc_proxy_ctn_napot(void);
+#endif
+/**
+ * Base address of the RAM.
+ */
+uint32_t sram_ctrl_ram_base(void);
+/**
+ * Size of the RAM.
+ */
+uint32_t sram_ctrl_ram_size(void);
+/**
+ * NAPOT encoding of the RAM region.
+ */
+uint32_t sram_ctrl_ram_napot(void);
 
 #ifdef __cplusplus
 }  // extern "C"

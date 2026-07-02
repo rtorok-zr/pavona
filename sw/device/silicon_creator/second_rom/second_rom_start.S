@@ -106,7 +106,6 @@ _rom_interrupt_vector_c:
    * ROM shadow stack.
    */
   .section .bss
-  .balignl 4, UNIMP
   .global _rom_shadow_stack
   .type _rom_shadow_stack, @object
 _rom_shadow_stack:
@@ -178,17 +177,6 @@ _second_rom_start_boot:
   li x30, 0x0
   li x31, 0x0
 
-  // 2nd stage PMP setting
-  // Reset ROM0 slots
-  li   t0, 0
-  csrw pmpaddr0, t0
-  csrw pmpaddr1, t0
-  csrw pmpaddr2, t0
-  csrw pmpcfg0, t0
-  // Update end of text region for ROM1
-  la   t0, _epmp_second_text_tor_hi
-  csrw pmpaddr5, t0
-
   /**
    * Setup C Runtime
    */
@@ -222,6 +210,10 @@ _second_rom_start_boot:
   // mode setting.
   la   t0, (_rom_interrupt_vector_c + 1)
   csrw mtvec, t0
+
+  // Advance ePMP state to lock access to ROM0.
+  .extern epmp_advance_boot_stage
+  call epmp_advance_boot_stage
 
   /**
    * Jump to C Code

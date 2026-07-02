@@ -4,30 +4,24 @@
 
 #include "sw/device/silicon_creator/rom/rom_epmp.h"
 
+#include "hw/top/dt/rom_ctrl.h"
+#include "hw/top/dt/sram_ctrl.h"
+
+#if HAS_FLASH_CTRL
+#include "hw/top/dt/flash_ctrl.h"
+#else
+#include "hw/top/dt/soc_proxy.h"
+#endif
+
 #include "sw/device/lib/base/bitfield.h"
 #include "sw/device/lib/base/csr.h"
 #include "sw/device/lib/base/memory.h"
-
-#include "hw/top_egret/sw/autogen/top_egret.h"
+#include "sw/device/silicon_creator/lib/drivers/epmp.h"
 
 // Symbols defined in linker script.
 extern char _stack_start[];  // Lowest stack address.
 extern char _text_start[];   // Start of executable code.
 extern char _text_end[];     // End of executable code.
-
-// Note: Hardcoding these values since the way we generate this range is not
-// very robust at the moment. See #14345 and #14336.
-static_assert(TOP_EGRET_MMIO_BASE_ADDR == 0x40000000,
-              "MMIO region changed, update ePMP configuration if needed");
-static_assert(TOP_EGRET_MMIO_SIZE_BYTES == 0x10000000,
-              "MMIO region changed, update ePMP configuration if needed");
-
-static_assert(TOP_EGRET_SRAM_CTRL_RET_AON_RAM_BASE_ADDR >=
-                      TOP_EGRET_MMIO_BASE_ADDR &&
-                  TOP_EGRET_SRAM_CTRL_RET_AON_RAM_BASE_ADDR +
-                          TOP_EGRET_SRAM_CTRL_RET_AON_RAM_SIZE_BYTES <
-                      TOP_EGRET_MMIO_BASE_ADDR + TOP_EGRET_MMIO_SIZE_BYTES,
-              "Retention SRAM must be in the MMIO address space.");
 
 void rom_epmp_state_init(lifecycle_state_t lc_state) {
   // Address space definitions.
@@ -36,20 +30,32 @@ void rom_epmp_state_init(lifecycle_state_t lc_state) {
   // grows downward from _stack_end.
   const epmp_region_t rom_text = {.start = (uintptr_t)_text_start,
                                   .end = (uintptr_t)_text_end};
-  const epmp_region_t rom = {.start = TOP_EGRET_ROM_CTRL_ROM_BASE_ADDR,
-                             .end = TOP_EGRET_ROM_CTRL_ROM_BASE_ADDR +
-                                    TOP_EGRET_ROM_CTRL_ROM_SIZE_BYTES};
-  const epmp_region_t eflash = {.start = TOP_EGRET_FLASH_CTRL_MEM_BASE_ADDR,
-                                .end = TOP_EGRET_FLASH_CTRL_MEM_BASE_ADDR +
-                                       TOP_EGRET_FLASH_CTRL_MEM_SIZE_BYTES};
+  epmp_region_t rom = {.start = rom_ctrl_rom_base(),
+                       .end = rom_ctrl_rom_base() + rom_ctrl_rom_size()};
+#ifndef HAS_ROM_CTRL1
+#ifdef HAS_FLASH_CTRL
+  epmp_region_t rom_ext = {
+      .start = flash_ctrl_mem_base(),
+      .end = flash_ctrl_mem_base() + flash_ctrl_mem_size()};
+#else
+  epmp_region_t rom_ext = {.start = soc_proxy_ctn_base(),
+                           .end = soc_proxy_ctn_base() + soc_proxy_ctn_size()};
+#endif
+#endif
+  // TODO: Have topgen generate a generic `top.h` header with these constants.
+#if defined(PAVONA_IS_EGRET)
   const epmp_region_t mmio = {
       .start = TOP_EGRET_MMIO_BASE_ADDR,
       .end = TOP_EGRET_MMIO_BASE_ADDR + TOP_EGRET_MMIO_SIZE_BYTES};
+#elif defined(PAVONA_IS_DRAGONFLY)
+  const epmp_region_t mmio = {
+      .start = TOP_DRAGONFLY_MMIO_BASE_ADDR,
+      .end = TOP_DRAGONFLY_MMIO_BASE_ADDR + TOP_DRAGONFLY_MMIO_SIZE_BYTES};
+#endif
   const epmp_region_t stack_guard = {.start = (uintptr_t)_stack_start,
                                      .end = (uintptr_t)_stack_start + 4};
-  const epmp_region_t ram = {.start = TOP_EGRET_SRAM_CTRL_MAIN_RAM_BASE_ADDR,
-                             .end = TOP_EGRET_SRAM_CTRL_MAIN_RAM_BASE_ADDR +
-                                    TOP_EGRET_SRAM_CTRL_MAIN_RAM_SIZE_BYTES};
+  epmp_region_t ram = {.start = sram_ctrl_ram_base(),
+                       .end = sram_ctrl_ram_base() + sram_ctrl_ram_size()};
 
   // Initialize in-memory copy of ePMP register state.
   //
@@ -59,54 +65,98 @@ void rom_epmp_state_init(lifecycle_state_t lc_state) {
   memset(&epmp_state, 0, sizeof(epmp_state));
   epmp_state_configure_tor(1, rom_text, kEpmpPermLockedReadExecute);
   epmp_state_configure_napot(2, rom, kEpmpPermLockedReadOnly);
-  epmp_state_configure_napot(5, eflash, kEpmpPermLockedReadOnly);
   epmp_state_configure_tor(11, mmio, kEpmpPermLockedReadWrite);
+#ifndef HAS_ROM_CTRL1
+  epmp_state_configure_napot(13, rom_ext, kEpmpPermLockedReadOnly);
+#endif
   epmp_state_configure_na4(14, stack_guard, kEpmpPermLockedNoAccess);
   epmp_state_configure_napot(15, ram, kEpmpPermLockedReadWrite);
   epmp_state.mseccfg = EPMP_MSECCFG_MMWP | EPMP_MSECCFG_RLB;
 }
 
-void rom_epmp_unlock_rom_ext_rx(epmp_region_t region) {
-  // Update the in-memory copy of ePMP register state.
-  const int kEntry = 4;
-  epmp_state_configure_tor(kEntry, region, kEpmpPermLockedReadExecute);
+/* Helpers to get ePMP region addresses in rom_epmp_start.S . */
 
-  // Update the hardware configuration (CSRs).
-  //
-  // Entry is hardcoded as 4. Make sure to modify hardcoded values if changing
-  // kEntry.
-  //
-  // The `pmp4cfg` configuration is the first field in `pmpcfg1`.
-  //
-  //            32          24          16           8           0
-  //             +-----------+-----------+-----------+-----------+
-  // `pmpcfg1` = | `pmp7cfg` | `pmp6cfg` | `pmp5cfg` | `pmp4cfg` |
-  //             +-----------+-----------+-----------+-----------+
-  CSR_WRITE(CSR_REG_PMPADDR3, region.start >> 2);
-  CSR_WRITE(CSR_REG_PMPADDR4, region.end >> 2);
-  CSR_CLEAR_BITS(CSR_REG_PMPCFG1, 0xff);
-  CSR_SET_BITS(CSR_REG_PMPCFG1, kEpmpModeTor | kEpmpPermLockedReadExecute);
+#define DT_SECTION __attribute__((section(".dt")))
+
+/**
+ * Encodes a memory region in Naturally Aligned Power-Of-Two (NAPOT) encoding
+ * for ePMP.
+ */
+DT_SECTION uint32_t encode_napot(uint32_t base, uint32_t length) {
+  return (base >> 2) | ((length - 1) >> 3);
 }
-
-void rom_epmp_unlock_rom_ext_r(epmp_region_t region) {
-  const int kEntry = 6;
-  epmp_state_configure_napot(kEntry, region, kEpmpPermLockedReadOnly);
-
-  // Update the hardware configuration (CSRs).
-  //
-  // Entry is hardcoded as 6. Make sure to modify hardcoded values if changing
-  // kEntry.
-  //
-  // The `pmp6cfg` configuration is the second field in `pmpcfg1`.
-  //
-  //            32          24          16           8           0
-  //             +-----------+-----------+-----------+-----------+
-  // `pmpcfg1` = | `pmp7cfg` | `pmp6cfg` | `pmp5cfg` | `pmp4cfg` |
-  //             +-----------+-----------+-----------+-----------+
-
-  CSR_WRITE(CSR_REG_PMPADDR6,
-            region.start >> 2 | (region.end - region.start - 1) >> 3);
-  CSR_CLEAR_BITS(CSR_REG_PMPCFG1, 0xff << 16);
-  CSR_SET_BITS(CSR_REG_PMPCFG1,
-               ((kEpmpModeNapot | kEpmpPermLockedReadOnly) << 16));
+/**
+ * Base address of the ROM.
+ */
+DT_SECTION uint32_t rom_ctrl_rom_base(void) {
+  return dt_rom_ctrl_memory_base(kDtRomCtrlFirst, kDtRomCtrlMemoryRom);
+}
+/**
+ * Size of the ROM.
+ */
+DT_SECTION uint32_t rom_ctrl_rom_size(void) {
+  return dt_rom_ctrl_memory_size(kDtRomCtrlFirst, kDtRomCtrlMemoryRom);
+}
+/**
+ * NAPOT encoding of the ROM region.
+ */
+DT_SECTION uint32_t rom_ctrl_rom_napot(void) {
+  return encode_napot(rom_ctrl_rom_base(), rom_ctrl_rom_size());
+}
+#ifdef HAS_FLASH_CTRL
+/**
+ * Base address of the flash memory.
+ */
+DT_SECTION uint32_t flash_ctrl_mem_base(void) {
+  return dt_flash_ctrl_memory_base(kDtFlashCtrl, kDtFlashCtrlMemoryMem);
+}
+/**
+ * Size of the flash memory.
+ */
+DT_SECTION uint32_t flash_ctrl_mem_size(void) {
+  return dt_flash_ctrl_memory_size(kDtFlashCtrl, kDtFlashCtrlMemoryMem);
+}
+/**
+ * NAPOT encoding of the Flash memory region.
+ */
+DT_SECTION uint32_t flash_ctrl_mem_napot(void) {
+  return encode_napot(flash_ctrl_mem_base(), flash_ctrl_mem_size());
+}
+#else
+/**
+ * Base address of the CTN SRAM.
+ */
+DT_SECTION uint32_t soc_proxy_ctn_base(void) {
+  return dt_soc_proxy_memory_base(kDtSocProxy, kDtSocProxyMemoryCtn);
+}
+/**
+ * Size of the CTN SRAM.
+ */
+DT_SECTION uint32_t soc_proxy_ctn_size(void) {
+  return dt_soc_proxy_memory_size(kDtSocProxy, kDtSocProxyMemoryCtn);
+}
+/**
+ * NAPOT encoding of the CTN SRAM region.
+ */
+DT_SECTION uint32_t soc_proxy_ctn_napot(void) {
+  return encode_napot(soc_proxy_ctn_base(), soc_proxy_ctn_size());
+}
+#endif
+/**
+ * Base address of the RAM.
+ */
+DT_SECTION uint32_t sram_ctrl_ram_base(void) {
+  return dt_sram_ctrl_memory_base(kDtSramCtrlMain, kDtSramCtrlMemoryRam);
+}
+/**
+ * Size of the RAM.
+ */
+DT_SECTION uint32_t sram_ctrl_ram_size(void) {
+  return dt_sram_ctrl_memory_size(kDtSramCtrlMain, kDtSramCtrlMemoryRam);
+}
+/**
+ * NAPOT encoding of the RAM region.
+ */
+DT_SECTION uint32_t sram_ctrl_ram_napot(void) {
+  return encode_napot(sram_ctrl_ram_base(), sram_ctrl_ram_size());
 }
