@@ -149,3 +149,17 @@ pavona_binary(
         ":second_rom_lib",
     ],
 )
+
+[
+    # Generate targets with `sim_dv` and `sim_verilator` suffixes as expected
+    # by dvsim.
+    alias(
+        name = "second_rom_{}".format(env),
+        actual = ":second_rom",
+    )
+    for env in [
+        "sim_dv",
+        "sim_verilator",
+    ]
+]
+
