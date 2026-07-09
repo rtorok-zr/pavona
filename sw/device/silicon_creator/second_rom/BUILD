@@ -162,4 +162,3 @@ pavona_binary(
         "sim_verilator",
     ]
 ]
-

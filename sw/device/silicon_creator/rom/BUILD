@@ -5,7 +5,7 @@
 
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
-load("//hw/top:defs.bzl", "pavona_if_ip", "pavona_select_top")
+load("//hw/top:defs.bzl", "pavona_if_ip", "pavona_require_ip", "pavona_select_top")
 load("//rules:cross_platform.bzl", "dual_cc_library", "dual_inputs")
 load("//rules:files.bzl", "output_groups")
 load("//rules:linker.bzl", "ld_library")
@@ -68,11 +68,6 @@ dual_cc_library(
     deps = dual_inputs(
         # On designs with onboard flash, ROM_EXT is held there; otherwise it
         # lives in CTN memory, which is goverened by the soc_proxy.
-        device = pavona_if_ip(
-            "flash_ctrl",
-            ["//hw/top/dt:flash_ctrl"],
-            ["//hw/top/dt:soc_proxy"],
-        ),
         host = [
             "//sw/device/lib/base:global_mock",
             "//sw/device/silicon_creator/testing:rom_test",
@@ -80,7 +75,11 @@ dual_cc_library(
         ],
         shared = [
             "//sw/device/silicon_creator/lib:manifest",
-        ],
+        ] + pavona_if_ip(
+            "flash_ctrl",
+            ["//hw/top/dt:flash_ctrl"],
+            ["//hw/top/dt:soc_proxy"],
+        ),
     ),
 )
 
@@ -105,6 +104,9 @@ cc_library(
 cc_test(
     name = "boot_policy_unittest",
     srcs = ["boot_policy_unittest.cc"],
+    # This test checks boot_data and manifest priority order, both of which are
+    # irrelevant in designs where the ROM_EXT is loaded to CTN SRAM.
+    target_compatible_with = pavona_require_ip("flash_ctrl"),
     deps = [
         ":boot_policy",
         "//sw/device/silicon_creator/testing:rom_test",
@@ -650,15 +652,22 @@ pavona_test(
     # Verilator or CW310 params).
     exec_env = {
         "//hw/top_egret:sim_verilator": None,
+        "//hw/top_dragonfly:sim_verilator": None,
     },
     kind = "rom",
-    linker_script = ":linker_script",
+    linker_script = pavona_select_top(
+        {
+            "egret": ":rom_single_stage",
+            "dragonfly": ":rom_dual_stage",
+        },
+        ":rom_single_stage_ld",
+    ),
     linkopts = [
         "-Wl,--defsym=rom_test=1",
     ],
     deps = [
-        ":rom_lib",
-        "//hw/top:flash_ctrl_c_regs",
+        ":rom_epmp",
+        "//hw/top/dt",
         "//sw/device/lib/arch:device",
         "//sw/device/lib/base:abs_mmio",
         "//sw/device/lib/base:bitfield",
@@ -680,9 +689,17 @@ pavona_test(
         "//sw/device/silicon_creator/lib/base:chip",
         "//sw/device/silicon_creator/lib/base:sec_mmio",
         "//sw/device/silicon_creator/lib/base:static_critical",
-        "//sw/device/silicon_creator/lib/drivers:flash_ctrl",
         "//sw/device/silicon_creator/lib/drivers:uart",
-    ],
+    ] + pavona_if_ip(
+        "flash_ctrl",
+        [
+            "//hw/top:flash_ctrl_c_regs",
+            "//sw/device/silicon_creator/lib/drivers:flash_ctrl",
+        ],
+        [
+            "//hw/top:soc_proxy_c_regs",
+        ],
+    ),
 )
 
 filegroup(
@@ -699,14 +716,6 @@ output_groups(
     testonly = True,
     srcs = [":rom"],
     groups = [
-        "fpga_cw310_binary",
-        "fpga_cw310_elf",
-        "fpga_cw310_rom",
-        "fpga_cw310_mapfile",
-        "fpga_cw340_binary",
-        "fpga_cw340_elf",
-        "fpga_cw340_rom",
-        "fpga_cw340_mapfile",
         "sim_dv_elf",
         "sim_dv_rom",
         "sim_dv_logs",
@@ -714,11 +723,26 @@ output_groups(
         "sim_verilator_elf",
         "sim_verilator_rom",
         "sim_verilator_mapfile",
-        "silicon_creator_binary",
-        "silicon_creator_elf",
-        "silicon_creator_rom",
-        "silicon_creator_mapfile",
-    ],
+    ] + pavona_select_top(
+        {
+            "egret": [
+                "fpga_cw310_binary",
+                "fpga_cw310_elf",
+                "fpga_cw310_rom",
+                "fpga_cw310_mapfile",
+                "fpga_cw340_binary",
+                "fpga_cw340_elf",
+                "fpga_cw340_rom",
+                "fpga_cw340_mapfile",
+                "silicon_creator_binary",
+                "silicon_creator_elf",
+                "silicon_creator_rom",
+                "silicon_creator_mapfile",
+            ],
+            "dragonfly": [],
+        },
+        [],
+    ),
 )
 
 pkg_files(
@@ -741,24 +765,38 @@ output_groups(
     name = "rom_binaries",
     srcs = [":rom"],
     groups = [
-        "fpga_cw310_binary",
-        "fpga_cw340_binary",
         "sim_dv_binary",
         "sim_verilator_binary",
-        "silicon_creator_binary",
-    ],
+    ] + pavona_select_top(
+        {
+            "egret": [
+                "fpga_cw310_binary",
+                "fpga_cw340_binary",
+                "silicon_creator_binary",
+            ],
+            "dragonfly": [],
+        },
+        [],
+    ),
 )
 
 output_groups(
     name = "rom_disassembly",
     srcs = [":rom"],
     groups = [
-        "fpga_cw310_disassembly",
-        "fpga_cw340_disassembly",
         "sim_dv_disassembly",
         "sim_verilator_disassembly",
-        "silicon_creator_disassembly",
-    ],
+    ] + pavona_select_top(
+        {
+            "egret": [
+                "fpga_cw310_disassembly",
+                "fpga_cw340_disassembly",
+                "silicon_creator_disassembly",
+            ],
+            "dragonfly": [],
+        },
+        [],
+    ),
 )
 
 genrule(
