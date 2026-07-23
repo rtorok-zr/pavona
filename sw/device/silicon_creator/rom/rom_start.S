@@ -257,7 +257,8 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
 
   // Copy the AST configuration from OTP.
   call ast_reg_base
-  addi a1, a0, (AST_REGAL_REG_OFFSET + 4)
+  lw   a1, OTP_CTRL_PARAM_CREATOR_SW_CFG_AST_INIT_SIZE_OFFSET(s0)
+  slli a1, a1, 2
   addi a2, s0, (OTP_CTRL_PARAM_CREATOR_SW_CFG_AST_CFG_OFFSET)
   call crt_section_copy
 

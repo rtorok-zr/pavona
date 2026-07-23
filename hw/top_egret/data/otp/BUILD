@@ -46,33 +46,11 @@ otp_json(
                 # Enable use of entropy for countermeasures. See the definition
                 # of `hardened_bool_t` in sw/device/lib/base/hardened.h.
                 "CREATOR_SW_CFG_RNG_EN": otp_hex(CONST.HARDENED_TRUE),
-                # ROM execution is enabled if this item is set to a non-zero
-                # value.
-                "CREATOR_SW_CFG_ROM_EXEC_EN": otp_hex(0xffffffff),
                 # Value to write to the cpuctrl CSR in `rom_init()`.
                 # See:
                 # https://ibex-core.readthedocs.io/en/latest/03_reference/cs_registers.html#cpu-control-register-cpuctrl
                 "CREATOR_SW_CFG_CPUCTRL": otp_hex(0x1),
                 "CREATOR_SW_CFG_JITTER_EN": otp_hex(CONST.MUBI4_FALSE),
-                # Value of the min_security_version_rom_ext field of the
-                # default boot data.
-                "CREATOR_SW_CFG_MIN_SEC_VER_ROM_EXT": otp_hex(0x0),
-                # Value of the min_security_version_bl0 field of the default
-                # boot data.
-                "CREATOR_SW_CFG_MIN_SEC_VER_BL0": otp_hex(0x0),
-                # Enable the default boot data in PROD and PROD_END life cycle
-                # states. See the definition of `hardened_bool_t` in
-                # sw/device/lib/base/hardened.h.
-                "CREATOR_SW_CFG_DEFAULT_BOOT_DATA_IN_PROD_EN": otp_hex(CONST.HARDENED_TRUE),
-                # Enable AST initialization.
-                "CREATOR_SW_CFG_AST_INIT_EN": otp_hex(CONST.MUBI4_TRUE),
-                # TODO: This enables a busyloop in the ROM to give time to
-                # trigger an RMA lifecycle transition via JTAG.  The current
-                # value of 10 cycles is useful for test code which verifies
-                # the path through the ROM.  This value is not useful for a
-                # real chip.
-                "CREATOR_SW_CFG_RMA_SPIN_EN": otp_hex(CONST.HARDENED_TRUE),
-                "CREATOR_SW_CFG_RMA_SPIN_CYCLES": "10",
                 # Entropy source health check default values. This needs to be
                 # populated when `CREATOR_SW_CFG_RNG_EN` is set to true.
                 "CREATOR_SW_CFG_RNG_REPCNT_THRESHOLDS": otp_hex(0xffffffff),
@@ -181,12 +159,8 @@ otp_json(
                     C = "0x0, 0x0, 0x0, 0x0",
                     D = "0x0, 0x0, 0x0, 0x0",
                 ),
-                # By default, ROM_EXT's bootstrap feature should be disabled.
-                "OWNER_SW_CFG_ROM_EXT_BOOTSTRAP_EN": otp_hex(CONST.HARDENED_FALSE),
                 # Disable SRAM readback for both ret-ram and main sram.
                 "OWNER_SW_CFG_ROM_SRAM_READBACK_EN": otp_hex(CONST.MUBI4_FALSE << 4 | CONST.MUBI4_FALSE),
-                "OWNER_SW_CFG_ROM_PRESERVE_RESET_REASON_EN": otp_hex(CONST.HARDENED_FALSE),
-                "OWNER_SW_CFG_ROM_RESET_REASON_CHECK_VALUE": otp_hex(CONST.HARDENED_FALSE << 16 | CONST.HARDENED_FALSE),
                 "OWNER_SW_CFG_ROM_FLASH_ECC_EXC_HANDLER_EN": otp_hex(CONST.HARDENED_TRUE),
                 # By default, the sensor_ctrl should disable all sensors and mark
                 # alerts as recoverable.
@@ -226,8 +200,6 @@ otp_json(
                 # Cryptolib and chip-level tests require access to the CSRNG
                 # software interfaces.
                 "EN_CSRNG_SW_APP_READ": True,
-                # Use legacy behavior and disable late debug enable.
-                "DIS_RV_DM_LATE_DEBUG": True,
             },
             lock = True,
         ),

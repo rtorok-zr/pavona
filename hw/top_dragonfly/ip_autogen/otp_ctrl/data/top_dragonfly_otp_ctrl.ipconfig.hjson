@@ -143,7 +143,7 @@
               size: 124
               desc:
                 '''
-                AST configuration data. These values get blindly copied to
+                Ast configuration data. These values get blindly copied to
                 the AST CSRs during ROM execution.
                 '''
               isdigest: false
@@ -173,62 +173,6 @@
               offset: 196
             }
             {
-              name: CREATOR_SW_CFG_ROM_SECURE_BOOT_EN
-              size: 4
-              ismubi: true
-              inv_default: <random>
-              desc:
-                '''
-                Secure boot chicken bit. Secure boot is enabled iff this is
-                set to kMultiBitBool32True. ACC is not loaded with any code
-                for any other values.
-                '''
-              isdigest: false
-              iszer: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              offset: 200
-            }
-            {
-              name: CREATOR_SW_CFG_ROM_SIGGEN_EN
-              size: 4
-              ismubi: true
-              inv_default: <random>
-              desc:
-                '''
-                Signature generation chicken bit. Asset signatures are
-                generated iff both this item and
-                CREATOR_SW_CFG_ROM_SECURE_BOOT_EN are set to
-                kMultiBitBool32True.
-                '''
-              isdigest: false
-              iszer: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              offset: 204
-            }
-            {
-              name: CREATOR_SW_CFG_ROM_SIGVERIFY_EN
-              size: 4
-              ismubi: true
-              inv_default: <random>
-              desc:
-                '''
-                Signature verification chicken bit. Asset signatures are
-                verified iff this item, the CREATOR_SW_CFG_ROM_SECURE_BOOT_EN
-                and the CREATOR_SW_CFG_ROM_SIGGEN_EN ones are all set to
-                kMultiBitBool32True.
-                '''
-              isdigest: false
-              iszer: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              offset: 208
-            }
-            {
               name: CREATOR_SW_CFG_SIGVERIFY_SPX_EN
               size: 4
               desc:
@@ -247,7 +191,7 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 212
+              offset: 200
             }
             {
               name: CREATOR_SW_CFG_RNG_EN
@@ -266,7 +210,7 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 216
+              offset: 204
             }
             {
               name: CREATOR_SW_CFG_JITTER_EN
@@ -283,7 +227,7 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 220
+              offset: 208
             }
             {
               name: CREATOR_SW_CFG_RET_RAM_RESET_MASK
@@ -302,7 +246,47 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 224
+              offset: 212
+            }
+            {
+              name: CREATOR_SW_CFG_MANUF_STATE
+              size: 4
+              desc:
+                '''
+                Manufacturing state binding field. For use by
+                SiliconCreators or SiliconOwners to bind ROM_EXT images to a
+                specific device or set of devices.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 216
+            }
+            {
+              name: CREATOR_SW_CFG_ROM_EXEC_EN
+              size: 4
+              desc:
+                '''
+                Whether or not to enable execution of ROM. A value of 0
+                disables, while all other values enable. This enables
+                provisioning flows to attach JTAG connections and halt the
+                CPU before the device has been fully provisioned. All SKUs
+                should set this field to a non-zero value. Provisioning
+                flows shall take care to program this field at the
+                appropriate time during.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 220
             }
             {
               name: CREATOR_SW_CFG_CPUCTRL
@@ -320,11 +304,37 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 228
+              offset: 224
             }
             {
               name: CREATOR_SW_CFG_RNG_REPCNT_THRESHOLDS
               size: 4
+              desc:
+                '''
+                The repetition count health test thresholds to enable
+                entropy_src with during ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 228
+            }
+            {
+              name: CREATOR_SW_CFG_RNG_REPCNTS_THRESHOLDS
+              size: 4
+              desc:
+                '''
+                The repetition count symbol health test thresholds to enable
+                entropy_src with during ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -335,8 +345,15 @@
               offset: 232
             }
             {
-              name: CREATOR_SW_CFG_RNG_REPCNTS_THRESHOLDS
+              name: CREATOR_SW_CFG_RNG_ADAPTP_HI_THRESHOLDS
               size: 4
+              desc:
+                '''
+                The adaptive proportion health test high thresholds to
+                enable entropy_src with during ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -347,8 +364,15 @@
               offset: 236
             }
             {
-              name: CREATOR_SW_CFG_RNG_ADAPTP_HI_THRESHOLDS
+              name: CREATOR_SW_CFG_RNG_ADAPTP_LO_THRESHOLDS
               size: 4
+              desc:
+                '''
+                The adaptive proportion health test low thresholds to enable
+                entropy_src with during ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -359,8 +383,15 @@
               offset: 240
             }
             {
-              name: CREATOR_SW_CFG_RNG_ADAPTP_LO_THRESHOLDS
+              name: CREATOR_SW_CFG_RNG_BUCKET_THRESHOLDS
               size: 4
+              desc:
+                '''
+                The bucket health test thresholds to enable entropy_src with
+                during ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -371,8 +402,15 @@
               offset: 244
             }
             {
-              name: CREATOR_SW_CFG_RNG_BUCKET_THRESHOLDS
+              name: CREATOR_SW_CFG_RNG_MARKOV_HI_THRESHOLDS
               size: 4
+              desc:
+                '''
+                The Markov health test high thresholds to enable entropy_src
+                with during ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -383,8 +421,15 @@
               offset: 248
             }
             {
-              name: CREATOR_SW_CFG_RNG_MARKOV_HI_THRESHOLDS
+              name: CREATOR_SW_CFG_RNG_MARKOV_LO_THRESHOLDS
               size: 4
+              desc:
+                '''
+                The Markov health test low thresholds to enable entropy_src
+                with during ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -395,8 +440,15 @@
               offset: 252
             }
             {
-              name: CREATOR_SW_CFG_RNG_MARKOV_LO_THRESHOLDS
+              name: CREATOR_SW_CFG_RNG_EXTHT_HI_THRESHOLDS
               size: 4
+              desc:
+                '''
+                The external health test high thresholds to enable the
+                entropy_src with during ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -407,8 +459,15 @@
               offset: 256
             }
             {
-              name: CREATOR_SW_CFG_RNG_EXTHT_HI_THRESHOLDS
+              name: CREATOR_SW_CFG_RNG_EXTHT_LO_THRESHOLDS
               size: 4
+              desc:
+                '''
+                The external health test low thresholds to enable the
+                entropy_src with during ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -419,8 +478,15 @@
               offset: 260
             }
             {
-              name: CREATOR_SW_CFG_RNG_EXTHT_LO_THRESHOLDS
+              name: CREATOR_SW_CFG_RNG_ALERT_THRESHOLD
               size: 4
+              desc:
+                '''
+                The alert threshold to configure the entropy_src with during
+                ROM execution.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -431,8 +497,15 @@
               offset: 264
             }
             {
-              name: CREATOR_SW_CFG_RNG_ALERT_THRESHOLD
+              name: CREATOR_SW_CFG_RNG_HEALTH_CONFIG_DIGEST
               size: 4
+              desc:
+                '''
+                A CRC32 digest of all entropy_src health test threshold
+                configuration fields above.
+                This must be configured if CREATOR_SW_CFG_RNG_EN is true.
+                See entropy_src documentation for more details.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -441,18 +514,6 @@
               absorb: false
               inv_default: 0
               offset: 268
-            }
-            {
-              name: CREATOR_SW_CFG_RNG_HEALTH_CONFIG_DIGEST
-              size: 4
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 272
             }
             {
               name: CREATOR_SW_CFG_SRAM_KEY_RENEW_AND_INIT_EN
@@ -472,7 +533,7 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 276
+              offset: 272
             }
             {
               name: CREATOR_SW_CFG_DIGEST
@@ -810,6 +871,24 @@
               offset: 1240
             }
             {
+              name: OWNER_SW_CFG_MANUF_STATE
+              size: 4
+              desc:
+                '''
+                Manufacturing state binding field. For use by
+                SiliconCreators or SiliconOwners to bind BL0 images to a
+                specific device or set of devices.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 1244
+            }
+            {
               name: OWNER_SW_CFG_ROM_RSTMGR_INFO_EN
               size: 4
               desc:
@@ -833,12 +912,34 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 1244
+              offset: 1248
+            }
+            {
+              name: OWNER_SW_CFG_ROM_SRAM_READBACK_EN
+              size: 4
+              desc:
+                '''
+                This field encodes the enablements of the readback security
+                features for the main and retention SRAMs to be configured
+                by the ROM. This field is four bytes, but the LSB contains
+                two 4-bit packed kMultiBitBool4* values that indicate the
+                enablement of the feature for the retention SRAM and
+                main SRAM, from MSB to LSB respectively. See the READBACK
+                CSR of the sram_ctrl for more details on this feature.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 1252
             }
             {
               name: OWNER_SW_CFG_DIGEST
               size: 8
-              offset: 1248
+              offset: 1256
               ismubi: false
               isdigest: true
               iszer: false
@@ -849,7 +950,7 @@
             {
               name: OWNER_SW_CFG_ZER
               size: 8
-              offset: 1256
+              offset: 1264
               ismubi: false
               isdigest: false
               iszer: true
@@ -868,7 +969,7 @@
           iskeymgr_creator: false
           iskeymgr_owner: false
           ignore_read_lock_in_rma: false
-          size: 968
+          size: 976
           offset: 296
         }
         {
@@ -905,7 +1006,7 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 1264
+              offset: 1272
             }
             {
               name: OWNERSHIP_SLOT_STATE_PLAT_INTEG_AUTH
@@ -926,7 +1027,7 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 1280
+              offset: 1288
             }
             {
               name: OWNERSHIP_SLOT_STATE_PLAT_OWNER_AUTH
@@ -951,12 +1052,12 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 1296
+              offset: 1304
             }
             {
               name: OWNERSHIP_SLOT_STATE_ZER
               size: 8
-              offset: 1312
+              offset: 1320
               ismubi: false
               isdigest: false
               iszer: true
@@ -993,7 +1094,7 @@
           iskeymgr_owner: false
           ignore_read_lock_in_rma: false
           size: 56
-          offset: 1264
+          offset: 1272
         }
         {
           name: ROT_CREATOR_IDENTITY
@@ -1027,7 +1128,7 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 1320
+              offset: 1328
             }
             {
               name: ROT_CREATOR_IDENTITY_CERT_CMAC
@@ -1040,12 +1141,12 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2088
+              offset: 2096
             }
             {
               name: ROT_CREATOR_IDENTITY_DIGEST
               size: 8
-              offset: 2104
+              offset: 2112
               ismubi: false
               isdigest: true
               iszer: false
@@ -1056,7 +1157,7 @@
             {
               name: ROT_CREATOR_IDENTITY_ZER
               size: 8
-              offset: 2112
+              offset: 2120
               ismubi: false
               isdigest: false
               iszer: true
@@ -1070,7 +1171,7 @@
           iskeymgr_owner: false
           ignore_read_lock_in_rma: false
           size: 800
-          offset: 1320
+          offset: 1328
         }
         {
           name: ROT_OWNER_AUTH_SLOT0
@@ -1088,60 +1189,20 @@
           items:
           [
             {
-              name: ROT_OWNER_AUTH_SLOT0_NON_RAW_MFW_CODESIGN_KEY_TYPE
+              name: ROT_OWNER_AUTH_SLOT0_FIRMWARE_CODESIGN_KEY_TYPE
               size: 4
               desc:
                 '''
                 Key usage type. One of the following 32-bit values defined
                 by the sigverify API:
                 - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
+                  Keys of this type can be used only in TEST_UNLOCKED* and RMA life
+                  cycle states.
                 - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
+                  Keys of this type can be used in all operational life cycle states, i.e.
+                  states in which CPU execution is enabled.
                 - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2120
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT0_NON_RAW_MFW_CODESIGN_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleBootstrapFirmwareSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2124
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT0_NON_RAW_MFW_CODESIGN_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify manufacturing and debug firmware images.
-                Key Type: ECC NIST-P256 Curve.
-                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
-                Together with the ROM2_PATCH_SIGVERIFY_KEY and KEYMANIFEST_KEY keys, and their
-                associated device ID and metadata (stored in resp. KEY_DEVICE_ID and KEY_METADATA),
-                this key is signed with a Silicon Creator endorsed ECDSA P-256 key in order to protect
-                it from supply-chain and manufacturing attacks.
+                  Keys of this type can be used only in the DEV life cycle state.
                 '''
               isdigest: false
               iszer: false
@@ -1153,20 +1214,13 @@
               offset: 2128
             }
             {
-              name: ROT_OWNER_AUTH_SLOT0_ROM2_PATCH_SIGVERIFY_KEY_TYPE
-              size: 4
+              name: ROT_OWNER_AUTH_SLOT0_FIRMWARE_CODESIGN_ECDSA_KEY
+              size: 64
               desc:
                 '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
+                ECDSA public key used to verify firmware images.
+                Key Type: ECC NIST-P256 Curve.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
                 '''
               isdigest: false
               iszer: false
@@ -1175,16 +1229,16 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2192
+              offset: 2132
             }
             {
-              name: ROT_OWNER_AUTH_SLOT0_ROM2_PATCH_SIGVERIFY_KEY_ROLE
-              size: 4
+              name: ROT_OWNER_AUTH_SLOT0_FIRMWARE_CODESIGN_SPX_KEY
+              size: 32
               desc:
                 '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleRomPatchSigning` 32-bit
-                value as defined by the sigverify API.
+                SPHINCS+ public key used to verify firmware images.
+                Key Type: SPHINCS+, see modes in ROT_OWNER_AUTH_SLOT0_FIRMWARE_CODESIGN_SPX_KEY_CONFIG.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
                 '''
               isdigest: false
               iszer: false
@@ -1196,17 +1250,33 @@
               offset: 2196
             }
             {
-              name: ROT_OWNER_AUTH_SLOT0_ROM2_PATCH_SIGVERIFY_KEY
+              name: ROT_OWNER_AUTH_SLOT0_FIRMWARE_CODESIGN_SPX_KEY_CONFIG
+              size: 4
+              desc:
+                '''
+                Configuration value for ROT_OWNER_AUTH_SLOT0_FIRMWARE_CODESIGN_SPX_KEY:
+                - kSigverifySpxConfigIdSha2128s: SPHINCS+-SHA2-128s without pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20: SPHINCS+-SHA2-128s-q20 without pre-hashing
+                - kSigverifySpxConfigIdSha2128sPrehash: SPHINCS+-SHA2-128s with SHA256 pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20Prehash: SPHINCS+-SHA2-128s-q20 with SHA256 pre-hashing.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2228
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT0_ROM1_PATCH_SIGVERIFY_ECDSA_KEY
               size: 64
               desc:
                 '''
-                Public Key used to verify the ROM2 OTP based patch.
+                ECDSA public key used to verify the second ROM OTP based patch.
                 Key Type: ECC NIST-P256 Curve.
                 It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
-                Together with the NON_RAW_MFW_CODESIGN_KEY and KEYMANIFEST_KEY keys, and their
-                associated device ID and metadata (stored in resp. KEY_DEVICE_ID and KEY_METADATA),
-                this key is signed with a Silicon Creator endorsed ECDSA P-256 key in order to protect
-                it from supply-chain and manufacturing attacks.
                 '''
               isdigest: false
               iszer: false
@@ -1215,23 +1285,36 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2200
+              offset: 2232
             }
             {
-              name: ROT_OWNER_AUTH_SLOT0_KEYMANIFEST_KEY_TYPE
+              name: ROT_OWNER_AUTH_SLOT0_ROM1_PATCH_SIGVERIFY_SPX_KEY
+              size: 32
+              desc:
+                '''
+                SPHNICS+ public key used to verify the second ROM OTP based patch.
+                Key Type: SPHINCS+, see ROT_OWNER_AUTH_SLOT0_ROM1_PATCH_SPX_KEY_CONFIG
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2296
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT0_ROM1_PATCH_SPX_KEY_CONFIG
               size: 4
               desc:
                 '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
+                Configuration value for ROT_OWNER_AUTH_SLOT0_ROM1_PATCH_SPX_KEY:
+                - kSigverifySpxConfigIdSha2128s: SPHINCS+-SHA2-128s without pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20: SPHINCS+-SHA2-128s-q20 without pre-hashing
+                - kSigverifySpxConfigIdSha2128sPrehash: SPHINCS+-SHA2-128s with SHA256 pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20Prehash: SPHINCS+-SHA2-128s-q20 with SHA256 pre-hashing.
                 '''
               isdigest: false
               iszer: false
@@ -1240,93 +1323,12 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2264
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT0_KEYMANIFEST_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleKeyBundleSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2268
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT0_KEYMANIFEST_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the RoT Creator (a.k.a. Silicon Creator) Key Manifest.
-                Key Type: ECC NIST-P256 Curve.
-                Together with the ROM2_PATCH_SIGVERIFY_KEY and NON_RAW_MFW_CODESIGN_KEY keys, and their
-                associated device ID and metadata (stored in resp. KEY_DEVICE_ID and KEY_METADATA),
-                this key is signed with a Silicon Creator endorsed ECDSA P-256 key in order to protect
-                it from supply-chain and manufacturing attacks.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2272
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT0_KEY_BINDING
-              size: 64
-              desc:
-                '''
-                A key binding value used to bind the ROT_OWNER_AUTH_SLOT0 keys to a SKU.
-                This item must store a SKU specific payload known at FT, like for example a fused
-                product identitfier or a ROM constant. The base ROM must verify the authenticity of
-                the ROT_OWNER_AUTH_SLOT0 first and then match the KEY_BINDING via an inline ROM check
-                before it uses the keys provisioned in this partition.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2336
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT0_KEY_SIGNATURE
-              size: 64
-              desc:
-                '''
-                ECDSA P-256 signature of the NON_RAW_MFW_CODESIGN_KEY,
-                ROM2_PATCH_SIGVERIFY_KEY, KEYMANIFEST_KEY, KEY_BINDING items in this partition.
-                As those three keys are expected to be provisioned at Final Test (FT) stage when
-                LC = TEST_UNLOCKED, this signatures aims at protecting them from supply-chain and
-                manufacturing attacks.
-                ROM images must include the corresponding signing key in order to verify all three
-                signatures.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2400
+              offset: 2328
             }
             {
               name: ROT_OWNER_AUTH_SLOT0_DIGEST
               size: 8
-              offset: 2464
+              offset: 2336
               ismubi: false
               isdigest: true
               iszer: false
@@ -1337,7 +1339,7 @@
             {
               name: ROT_OWNER_AUTH_SLOT0_ZER
               size: 8
-              offset: 2472
+              offset: 2344
               ismubi: false
               isdigest: false
               iszer: true
@@ -1346,12 +1348,12 @@
               iskeymgr_owner: false
             }
           ]
-          desc: Software managed partition for the first RoT Owner (a.k.a. RoT Creator) key manifest.
+          desc: Software managed partition for a RoT Owner (a.k.a. Silicon Creator) key manifest.
           iskeymgr_creator: false
           iskeymgr_owner: false
           ignore_read_lock_in_rma: false
-          size: 360
-          offset: 2120
+          size: 224
+          offset: 2128
         }
         {
           name: ROT_OWNER_AUTH_SLOT1
@@ -1369,20 +1371,20 @@
           items:
           [
             {
-              name: ROT_OWNER_AUTH_SLOT1_NON_RAW_MFW_CODESIGN_KEY_TYPE
+              name: ROT_OWNER_AUTH_SLOT1_FIRMWARE_CODESIGN_KEY_TYPE
               size: 4
               desc:
                 '''
                 Key usage type. One of the following 32-bit values defined
                 by the sigverify API:
                 - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
+                  Keys of this type can be used only in TEST_UNLOCKED* and RMA life
+                  cycle states.
                 - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
+                  Keys of this type can be used in all operational life cycle states, i.e.
+                  states in which CPU execution is enabled.
                 - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
+                  Keys of this type can be used only in the DEV life cycle state.
                 '''
               isdigest: false
               iszer: false
@@ -1391,38 +1393,16 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2480
+              offset: 2352
             }
             {
-              name: ROT_OWNER_AUTH_SLOT1_NON_RAW_MFW_CODESIGN_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleBootstrapFirmwareSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2484
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT1_NON_RAW_MFW_CODESIGN_KEY
+              name: ROT_OWNER_AUTH_SLOT1_FIRMWARE_CODESIGN_ECDSA_KEY
               size: 64
               desc:
                 '''
-                Public Key used to verify manufacturing and debug firmware images.
+                ECDSA public key used to verify firmware images.
                 Key Type: ECC NIST-P256 Curve.
                 It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
-                Together with the ROM2_PATCH_SIGVERIFY_KEY and KEYMANIFEST_KEY keys, and their
-                associated device ID and metadata (stored in resp. KEY_DEVICE_ID and KEY_METADATA),
-                this key is signed with a Silicon Creator endorsed ECDSA P-256 key in order to protect
-                it from supply-chain and manufacturing attacks.
                 '''
               isdigest: false
               iszer: false
@@ -1431,23 +1411,92 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2488
+              offset: 2356
             }
             {
-              name: ROT_OWNER_AUTH_SLOT1_ROM2_PATCH_SIGVERIFY_KEY_TYPE
+              name: ROT_OWNER_AUTH_SLOT1_FIRMWARE_CODESIGN_SPX_KEY
+              size: 32
+              desc:
+                '''
+                SPHINCS+ public key used to verify firmware images.
+                Key Type: SPHINCS+, see modes in ROT_OWNER_AUTH_SLOT1_FIRMWARE_CODESIGN_SPX_KEY_CONFIG.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2420
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT1_FIRMWARE_CODESIGN_SPX_KEY_CONFIG
               size: 4
               desc:
                 '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
+                Configuration value for ROT_OWNER_AUTH_SLOT1_FIRMWARE_CODESIGN_SPX_KEY:
+                - kSigverifySpxConfigIdSha2128s: SPHINCS+-SHA2-128s without pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20: SPHINCS+-SHA2-128s-q20 without pre-hashing
+                - kSigverifySpxConfigIdSha2128sPrehash: SPHINCS+-SHA2-128s with SHA256 pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20Prehash: SPHINCS+-SHA2-128s-q20 with SHA256 pre-hashing.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2452
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT1_ROM1_PATCH_SIGVERIFY_ECDSA_KEY
+              size: 64
+              desc:
+                '''
+                ECDSA public key used to verify the second ROM OTP based patch.
+                Key Type: ECC NIST-P256 Curve.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2456
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT1_ROM1_PATCH_SIGVERIFY_SPX_KEY
+              size: 32
+              desc:
+                '''
+                SPHNICS+ public key used to verify the second ROM OTP based patch.
+                Key Type: SPHINCS+, see ROT_OWNER_AUTH_SLOT1_ROM1_PATCH_SPX_KEY_CONFIG
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2520
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT1_ROM1_PATCH_SPX_KEY_CONFIG
+              size: 4
+              desc:
+                '''
+                Configuration value for ROT_OWNER_AUTH_SLOT1_ROM1_PATCH_SPX_KEY:
+                - kSigverifySpxConfigIdSha2128s: SPHINCS+-SHA2-128s without pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20: SPHINCS+-SHA2-128s-q20 without pre-hashing
+                - kSigverifySpxConfigIdSha2128sPrehash: SPHINCS+-SHA2-128s with SHA256 pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20Prehash: SPHINCS+-SHA2-128s-q20 with SHA256 pre-hashing.
                 '''
               isdigest: false
               iszer: false
@@ -1459,177 +1508,9 @@
               offset: 2552
             }
             {
-              name: ROT_OWNER_AUTH_SLOT1_ROM2_PATCH_SIGVERIFY_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleRomPatchSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2556
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT1_ROM2_PATCH_SIGVERIFY_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the ROM2 OTP based patch.
-                Key Type: ECC NIST-P256 Curve.
-                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
-                Together with the NON_RAW_MFW_CODESIGN_KEY and KEYMANIFEST_KEY keys, and their
-                associated device ID and metadata (stored in resp. KEY_DEVICE_ID and KEY_METADATA),
-                this key is signed with a Silicon Creator endorsed ECDSA P-256 key in order to protect
-                it from supply-chain and manufacturing attacks.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2560
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT1_KEYMANIFEST_KEY_TYPE
-              size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2624
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT1_KEYMANIFEST_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleKeyBundleSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2628
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT1_KEYMANIFEST_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the RoT Owner (a.k.a. Silicon Owner) Key Manifest.
-                Key Type: ECC NIST-P256 Curve.
-                It is expected to be provisioned as part of the RoT Owner intra-role ownership transfer
-                process, when LC = PROD.
-                Provisioning happens through an Ownership Claim operation, after the previous RoT
-                Owner completed a Relinquish operation.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2632
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT1_UNLOCK4XFER_KEY_TYPE
-              size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2696
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT1_UNLOCK4XFER_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleRelinquishOwnership` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2700
-            }
-            {
-              name: ROT_OWNER_AUTH_SLOT1_UNLOCK4XFER_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the RoT Owner Unlock Ownership firmware image.
-                Key Type: ECC NIST-P256 Curve.
-                It is expected to be provisioned as part of the RoT Owner intra-role ownership transfer
-                process, when LC = PROD.
-                Provisioning happens through an Ownership Claim operation, after the previous RoT
-                Owner completed a Relinquish operation.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2704
-            }
-            {
               name: ROT_OWNER_AUTH_SLOT1_DIGEST
               size: 8
-              offset: 2768
+              offset: 2560
               ismubi: false
               isdigest: true
               iszer: false
@@ -1640,7 +1521,7 @@
             {
               name: ROT_OWNER_AUTH_SLOT1_ZER
               size: 8
-              offset: 2776
+              offset: 2568
               ismubi: false
               isdigest: false
               iszer: true
@@ -1649,15 +1530,15 @@
               iskeymgr_owner: false
             }
           ]
-          desc: Software managed RoT Owner slot 1 partition.
+          desc: Software managed partition for a RoT Owner (a.k.a. Silicon Creator) key manifest.
           iskeymgr_creator: false
           iskeymgr_owner: false
           ignore_read_lock_in_rma: false
-          size: 304
-          offset: 2480
+          size: 224
+          offset: 2352
         }
         {
-          name: PLAT_INTEG_AUTH_SLOT0
+          name: ROT_OWNER_AUTH_SLOT2
           variant: Unbuffered
           absorb: false
           secret: false
@@ -1672,20 +1553,20 @@
           items:
           [
             {
-              name: PLAT_INTEG_AUTH_SLOT0_KEYMANIFEST_KEY_TYPE
+              name: ROT_OWNER_AUTH_SLOT2_FIRMWARE_CODESIGN_KEY_TYPE
               size: 4
               desc:
                 '''
                 Key usage type. One of the following 32-bit values defined
                 by the sigverify API:
                 - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
+                  Keys of this type can be used only in TEST_UNLOCKED* and RMA life
+                  cycle states.
                 - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
+                  Keys of this type can be used in all operational life cycle states, i.e.
+                  states in which CPU execution is enabled.
                 - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
+                  Keys of this type can be used only in the DEV life cycle state.
                 '''
               isdigest: false
               iszer: false
@@ -1694,37 +1575,16 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2784
+              offset: 2576
             }
             {
-              name: PLAT_INTEG_AUTH_SLOT0_KEYMANIFEST_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleKeyBundleSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2788
-            }
-            {
-              name: PLAT_INTEG_AUTH_SLOT0_KEYMANIFEST_KEY
+              name: ROT_OWNER_AUTH_SLOT2_FIRMWARE_CODESIGN_ECDSA_KEY
               size: 64
               desc:
                 '''
-                Public Key used to verify the Platform Integrator Key Manifest.
+                ECDSA public key used to verify firmware images.
                 Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Integrator Activation process, at the Platform
-                Integrator's manufacturing facilities.
-                The initial Platform Integrator provisions its Key Manifest public key using the provisioning
-                boot service provided by the current RoT Owner.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
                 '''
               isdigest: false
               iszer: false
@@ -1733,23 +1593,36 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2792
+              offset: 2580
             }
             {
-              name: PLAT_INTEG_AUTH_SLOT0_UNLOCK4XFER_KEY_TYPE
+              name: ROT_OWNER_AUTH_SLOT2_FIRMWARE_CODESIGN_SPX_KEY
+              size: 32
+              desc:
+                '''
+                SPHINCS+ public key used to verify firmware images.
+                Key Type: SPHINCS+, see modes in ROT_OWNER_AUTH_SLOT2_FIRMWARE_CODESIGN_SPX_KEY_CONFIG.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2644
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT2_FIRMWARE_CODESIGN_SPX_KEY_CONFIG
               size: 4
               desc:
                 '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
+                Configuration value for ROT_OWNER_AUTH_SLOT2_FIRMWARE_CODESIGN_SPX_KEY:
+                - kSigverifySpxConfigIdSha2128s: SPHINCS+-SHA2-128s without pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20: SPHINCS+-SHA2-128s-q20 without pre-hashing
+                - kSigverifySpxConfigIdSha2128sPrehash: SPHINCS+-SHA2-128s with SHA256 pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20Prehash: SPHINCS+-SHA2-128s-q20 with SHA256 pre-hashing.
                 '''
               isdigest: false
               iszer: false
@@ -1758,37 +1631,16 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2856
+              offset: 2676
             }
             {
-              name: PLAT_INTEG_AUTH_SLOT0_UNLOCK4XFER_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleRelinquishOwnership` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2860
-            }
-            {
-              name: PLAT_INTEG_AUTH_SLOT0_UNLOCK4XFER_KEY
+              name: ROT_OWNER_AUTH_SLOT2_ROM1_PATCH_SIGVERIFY_ECDSA_KEY
               size: 64
               desc:
                 '''
-                Public Key used to verify the Platform Integrator Unlock Ownership firmware image.
+                ECDSA public key used to verify the second ROM OTP based patch.
                 Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Integrator Activation process, at the Platform
-                Integrator's manufacturing facilities.
-                The initial Platform Integrator provisions its Key Manifest public key using the provisioning
-                boot service provided by the current RoT Owner.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
                 '''
               isdigest: false
               iszer: false
@@ -1797,12 +1649,50 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2864
+              offset: 2680
             }
             {
-              name: PLAT_INTEG_AUTH_SLOT0_DIGEST
+              name: ROT_OWNER_AUTH_SLOT2_ROM1_PATCH_SIGVERIFY_SPX_KEY
+              size: 32
+              desc:
+                '''
+                SPHNICS+ public key used to verify the second ROM OTP based patch.
+                Key Type: SPHINCS+, see ROT_OWNER_AUTH_SLOT2_ROM1_PATCH_SPX_KEY_CONFIG
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2744
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT2_ROM1_PATCH_SPX_KEY_CONFIG
+              size: 4
+              desc:
+                '''
+                Configuration value for ROT_OWNER_AUTH_SLOT2_ROM1_PATCH_SPX_KEY:
+                - kSigverifySpxConfigIdSha2128s: SPHINCS+-SHA2-128s without pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20: SPHINCS+-SHA2-128s-q20 without pre-hashing
+                - kSigverifySpxConfigIdSha2128sPrehash: SPHINCS+-SHA2-128s with SHA256 pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20Prehash: SPHINCS+-SHA2-128s-q20 with SHA256 pre-hashing.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2776
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT2_DIGEST
               size: 8
-              offset: 2928
+              offset: 2784
               ismubi: false
               isdigest: true
               iszer: false
@@ -1811,9 +1701,9 @@
               iskeymgr_owner: false
             }
             {
-              name: PLAT_INTEG_AUTH_SLOT0_ZER
+              name: ROT_OWNER_AUTH_SLOT2_ZER
               size: 8
-              offset: 2936
+              offset: 2792
               ismubi: false
               isdigest: false
               iszer: true
@@ -1822,15 +1712,15 @@
               iskeymgr_owner: false
             }
           ]
-          desc: Software managed Platform Integrator slot 0 partition.
+          desc: Software managed partition for a RoT Owner (a.k.a. Silicon Creator) key manifest.
           iskeymgr_creator: false
           iskeymgr_owner: false
           ignore_read_lock_in_rma: false
-          size: 160
-          offset: 2784
+          size: 224
+          offset: 2576
         }
         {
-          name: PLAT_INTEG_AUTH_SLOT1
+          name: ROT_OWNER_AUTH_SLOT3
           variant: Unbuffered
           absorb: false
           secret: false
@@ -1845,20 +1735,20 @@
           items:
           [
             {
-              name: PLAT_INTEG_AUTH_SLOT1_KEYMANIFEST_KEY_TYPE
+              name: ROT_OWNER_AUTH_SLOT3_FIRMWARE_CODESIGN_KEY_TYPE
               size: 4
               desc:
                 '''
                 Key usage type. One of the following 32-bit values defined
                 by the sigverify API:
                 - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
+                  Keys of this type can be used only in TEST_UNLOCKED* and RMA life
+                  cycle states.
                 - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
+                  Keys of this type can be used in all operational life cycle states, i.e.
+                  states in which CPU execution is enabled.
                 - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
+                  Keys of this type can be used only in the DEV life cycle state.
                 '''
               isdigest: false
               iszer: false
@@ -1867,36 +1757,16 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2944
+              offset: 2800
             }
             {
-              name: PLAT_INTEG_AUTH_SLOT1_KEYMANIFEST_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleKeyBundleSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 2948
-            }
-            {
-              name: PLAT_INTEG_AUTH_SLOT1_KEYMANIFEST_KEY
+              name: ROT_OWNER_AUTH_SLOT3_FIRMWARE_CODESIGN_ECDSA_KEY
               size: 64
               desc:
                 '''
-                Public Key used to verify the Platform Integrator Key Manifest.
+                ECDSA public key used to verify firmware images.
                 Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Integrator intra-role ownership transfer
-                process when the lifecycle state (LC) is PROD. Provisioning occurs via an Ownership Claim
-                operation after the previous Platform Integrator completes a Relinquish operation.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
                 '''
               isdigest: false
               iszer: false
@@ -1905,23 +1775,36 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 2952
+              offset: 2804
             }
             {
-              name: PLAT_INTEG_AUTH_SLOT1_UNLOCK4XFER_KEY_TYPE
+              name: ROT_OWNER_AUTH_SLOT3_FIRMWARE_CODESIGN_SPX_KEY
+              size: 32
+              desc:
+                '''
+                SPHINCS+ public key used to verify firmware images.
+                Key Type: SPHINCS+, see modes in ROT_OWNER_AUTH_SLOT3_FIRMWARE_CODESIGN_SPX_KEY_CONFIG.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2868
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT3_FIRMWARE_CODESIGN_SPX_KEY_CONFIG
               size: 4
               desc:
                 '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
+                Configuration value for ROT_OWNER_AUTH_SLOT3_FIRMWARE_CODESIGN_SPX_KEY:
+                - kSigverifySpxConfigIdSha2128s: SPHINCS+-SHA2-128s without pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20: SPHINCS+-SHA2-128s-q20 without pre-hashing
+                - kSigverifySpxConfigIdSha2128sPrehash: SPHINCS+-SHA2-128s with SHA256 pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20Prehash: SPHINCS+-SHA2-128s-q20 with SHA256 pre-hashing.
                 '''
               isdigest: false
               iszer: false
@@ -1930,37 +1813,112 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
+              offset: 2900
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT3_ROM1_PATCH_SIGVERIFY_ECDSA_KEY
+              size: 64
+              desc:
+                '''
+                ECDSA public key used to verify the second ROM OTP based patch.
+                Key Type: ECC NIST-P256 Curve.
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2904
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT3_ROM1_PATCH_SIGVERIFY_SPX_KEY
+              size: 32
+              desc:
+                '''
+                SPHNICS+ public key used to verify the second ROM OTP based patch.
+                Key Type: SPHINCS+, see ROT_OWNER_AUTH_SLOT3_ROM1_PATCH_SPX_KEY_CONFIG
+                It is expected to be provisioned at Final Test (FT) stage when LC = TEST_UNLOCKED.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 2968
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT3_ROM1_PATCH_SPX_KEY_CONFIG
+              size: 4
+              desc:
+                '''
+                Configuration value for ROT_OWNER_AUTH_SLOT3_ROM1_PATCH_SPX_KEY:
+                - kSigverifySpxConfigIdSha2128s: SPHINCS+-SHA2-128s without pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20: SPHINCS+-SHA2-128s-q20 without pre-hashing
+                - kSigverifySpxConfigIdSha2128sPrehash: SPHINCS+-SHA2-128s with SHA256 pre-hashing.
+                - kSigverifySpxConfigIdSha2128sQ20Prehash: SPHINCS+-SHA2-128s-q20 with SHA256 pre-hashing.
+                '''
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3000
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT3_DIGEST
+              size: 8
+              offset: 3008
+              ismubi: false
+              isdigest: true
+              iszer: false
+              inv_default: <random>
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT3_ZER
+              size: 8
               offset: 3016
-            }
-            {
-              name: PLAT_INTEG_AUTH_SLOT1_UNLOCK4XFER_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleRelinquishOwnership` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
               ismubi: false
+              isdigest: false
+              iszer: true
+              inv_default: 0
               iskeymgr_creator: false
               iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3020
             }
+          ]
+          desc: Software managed partition for a RoT Owner (a.k.a. Silicon Creator) key manifest.
+          iskeymgr_creator: false
+          iskeymgr_owner: false
+          ignore_read_lock_in_rma: false
+          size: 224
+          offset: 2800
+        }
+        {
+          name: ROT_OWNER_AUTH_SLOT0_STATE
+          variant: Unbuffered
+          absorb: false
+          secret: false
+          sw_digest: true
+          hw_digest: false
+          write_lock: Digest
+          read_lock: CSR
+          key_sel: NoKey
+          integrity: true
+          bkout_type: false
+          items:
+          [
             {
-              name: PLAT_INTEG_AUTH_SLOT1_UNLOCK4XFER_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the Platform Integrator Unlock Ownership firmware image
-                Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Integrator intra-role ownership transfer
-                process when the lifecycle state (LC) is PROD. Provisioning occurs via an Ownership Claim
-                operation after the previous Platform Integrator completes a Relinquish operation.
-                '''
+              name: ROT_OWNER_AUTH_SLOT0_STATE_FIRMWARE_CODESIGN_ECDSA_KEY_STATE
+              size: 4
+              desc: Enablement state of the firmware verification ECDSA key in ROT_OWNER_AUTH_SLOT0.
               isdigest: false
               iszer: false
               ismubi: false
@@ -1971,9 +1929,48 @@
               offset: 3024
             }
             {
-              name: PLAT_INTEG_AUTH_SLOT1_DIGEST
+              name: ROT_OWNER_AUTH_SLOT0_STATE_FIRMWARE_CODESIGN_SPX_KEY_STATE
+              size: 4
+              desc: Enablement state of the firmware verification SPHINCS+ key in ROT_OWNER_AUTH_SLOT0.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3028
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT0_STATE_ROM1_PATCH_ECDSA_KEY_STATE
+              size: 4
+              desc: Enablement state of the second ROM patch ECDSA key in ROT_OWNER_AUTH_SLOT0.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3032
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT0_STATE_ROM1_PATCH_SPX_KEY_STATE
+              size: 4
+              desc: Enablement state of the second ROM patch SPHINCS+ key in ROT_OWNER_AUTH_SLOT0.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3036
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT0_STATE_DIGEST
               size: 8
-              offset: 3088
+              offset: 3040
               ismubi: false
               isdigest: true
               iszer: false
@@ -1981,27 +1978,27 @@
               iskeymgr_creator: false
               iskeymgr_owner: false
             }
-            {
-              name: PLAT_INTEG_AUTH_SLOT1_ZER
-              size: 8
-              offset: 3096
-              ismubi: false
-              isdigest: false
-              iszer: true
-              inv_default: 0
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-            }
           ]
-          desc: Software managed Platform Integrator slot 1 partition.
+          desc:
+            '''
+            This OTP partition is used to capture the state of each key in ROT_OWNER_AUTH_SLOT0.
+            Each key can be in one of the following states: BLANK, ENABLED, DISABLED. The
+            encoded values are such that transitions between BLANK -> ENABLED ->  DISABLED are
+            Possible without causing ECC errors (this is a mechanism similar to how we manage
+            life cycle state transitions). The partition is left unlocked to allow STATE
+            updates in the field. The ROM_EXT is required to lock access to the OTP Direct
+            Access Interface to prevent DoS attacks from malicious code executing on Silicon
+            Owner partitions. DAI write locking is available.
+            '''
           iskeymgr_creator: false
           iskeymgr_owner: false
+          zeroizable: false
           ignore_read_lock_in_rma: false
-          size: 160
-          offset: 2944
+          size: 24
+          offset: 3024
         }
         {
-          name: PLAT_OWNER_AUTH_SLOT0
+          name: ROT_OWNER_AUTH_SLOT1_STATE
           variant: Unbuffered
           absorb: false
           secret: false
@@ -2012,25 +2009,230 @@
           key_sel: NoKey
           integrity: true
           bkout_type: false
-          zeroizable: true
           items:
           [
             {
-              name: PLAT_OWNER_AUTH_SLOT0_KEYMANIFEST_KEY_TYPE
+              name: ROT_OWNER_AUTH_SLOT1_STATE_FIRMWARE_CODESIGN_ECDSA_KEY_STATE
               size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
+              desc: Enablement state of the firmware verification ECDSA key in ROT_OWNER_AUTH_SLOT1.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3048
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT1_STATE_FIRMWARE_CODESIGN_SPX_KEY_STATE
+              size: 4
+              desc: Enablement state of the firmware verification SPHINCS+ key in ROT_OWNER_AUTH_SLOT1.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3052
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT1_STATE_ROM1_PATCH_ECDSA_KEY_STATE
+              size: 4
+              desc: Enablement state of the second ROM patch ECDSA key in ROT_OWNER_AUTH_SLOT1.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3056
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT1_STATE_ROM1_PATCH_SPX_KEY_STATE
+              size: 4
+              desc: Enablement state of the second ROM patch SPHINCS+ key in ROT_OWNER_AUTH_SLOT1.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3060
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT1_STATE_DIGEST
+              size: 8
+              offset: 3064
+              ismubi: false
+              isdigest: true
+              iszer: false
+              inv_default: <random>
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+            }
+          ]
+          desc:
+            '''
+            This OTP partition is used to capture the state of each key in ROT_OWNER_AUTH_SLOT1.
+            Each key can be in one of the following states: BLANK, ENABLED, DISABLED. The
+            encoded values are such that transitions between BLANK -> ENABLED ->  DISABLED are
+            Possible without causing ECC errors (this is a mechanism similar to how we manage
+            life cycle state transitions). The partition is left unlocked to allow STATE
+            updates in the field. The ROM_EXT is required to lock access to the OTP Direct
+            Access Interface to prevent DoS attacks from malicious code executing on Silicon
+            Owner partitions. DAI write locking is available.
+            '''
+          iskeymgr_creator: false
+          iskeymgr_owner: false
+          zeroizable: false
+          ignore_read_lock_in_rma: false
+          size: 24
+          offset: 3048
+        }
+        {
+          name: ROT_OWNER_AUTH_SLOT2_STATE
+          variant: Unbuffered
+          absorb: false
+          secret: false
+          sw_digest: true
+          hw_digest: false
+          write_lock: Digest
+          read_lock: CSR
+          key_sel: NoKey
+          integrity: true
+          bkout_type: false
+          items:
+          [
+            {
+              name: ROT_OWNER_AUTH_SLOT2_STATE_FIRMWARE_CODESIGN_ECDSA_KEY_STATE
+              size: 4
+              desc: Enablement state of the firmware verification ECDSA key in ROT_OWNER_AUTH_SLOT2.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3072
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT2_STATE_FIRMWARE_CODESIGN_SPX_KEY_STATE
+              size: 4
+              desc: Enablement state of the firmware verification SPHINCS+ key in ROT_OWNER_AUTH_SLOT2.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3076
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT2_STATE_ROM1_PATCH_ECDSA_KEY_STATE
+              size: 4
+              desc: Enablement state of the second ROM patch ECDSA key in ROT_OWNER_AUTH_SLOT2.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3080
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT2_STATE_ROM1_PATCH_SPX_KEY_STATE
+              size: 4
+              desc: Enablement state of the second ROM patch SPHINCS+ key in ROT_OWNER_AUTH_SLOT2.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3084
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT2_STATE_DIGEST
+              size: 8
+              offset: 3088
+              ismubi: false
+              isdigest: true
+              iszer: false
+              inv_default: <random>
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+            }
+          ]
+          desc:
+            '''
+            This OTP partition is used to capture the state of each key in ROT_OWNER_AUTH_SLOT2.
+            Each key can be in one of the following states: BLANK, ENABLED, DISABLED. The
+            encoded values are such that transitions between BLANK -> ENABLED ->  DISABLED are
+            Possible without causing ECC errors (this is a mechanism similar to how we manage
+            life cycle state transitions). The partition is left unlocked to allow STATE
+            updates in the field. The ROM_EXT is required to lock access to the OTP Direct
+            Access Interface to prevent DoS attacks from malicious code executing on Silicon
+            Owner partitions. DAI write locking is available.
+            '''
+          iskeymgr_creator: false
+          iskeymgr_owner: false
+          zeroizable: false
+          ignore_read_lock_in_rma: false
+          size: 24
+          offset: 3072
+        }
+        {
+          name: ROT_OWNER_AUTH_SLOT3_STATE
+          variant: Unbuffered
+          absorb: false
+          secret: false
+          sw_digest: true
+          hw_digest: false
+          write_lock: Digest
+          read_lock: CSR
+          key_sel: NoKey
+          integrity: true
+          bkout_type: false
+          items:
+          [
+            {
+              name: ROT_OWNER_AUTH_SLOT3_STATE_FIRMWARE_CODESIGN_ECDSA_KEY_STATE
+              size: 4
+              desc: Enablement state of the firmware verification ECDSA key in ROT_OWNER_AUTH_SLOT3.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3096
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT3_STATE_FIRMWARE_CODESIGN_SPX_KEY_STATE
+              size: 4
+              desc: Enablement state of the firmware verification SPHINCS+ key in ROT_OWNER_AUTH_SLOT3.
+              isdigest: false
+              iszer: false
+              ismubi: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              inv_default: 0
+              offset: 3100
+            }
+            {
+              name: ROT_OWNER_AUTH_SLOT3_STATE_ROM1_PATCH_ECDSA_KEY_STATE
+              size: 4
+              desc: Enablement state of the second ROM patch ECDSA key in ROT_OWNER_AUTH_SLOT3.
               isdigest: false
               iszer: false
               ismubi: false
@@ -2041,14 +2243,9 @@
               offset: 3104
             }
             {
-              name: PLAT_OWNER_AUTH_SLOT0_KEYMANIFEST_KEY_ROLE
+              name: ROT_OWNER_AUTH_SLOT3_STATE_ROM1_PATCH_SPX_KEY_STATE
               size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleKeyBundleSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
+              desc: Enablement state of the second ROM patch SPHINCS+ key in ROT_OWNER_AUTH_SLOT3.
               isdigest: false
               iszer: false
               ismubi: false
@@ -2059,94 +2256,9 @@
               offset: 3108
             }
             {
-              name: PLAT_OWNER_AUTH_SLOT0_KEYMANIFEST_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the Platform Owner Key Manifest.
-                Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Owner Activation process, at the Platform
-                Owner's facilities.
-                The initial Platform Owner provisions its Key Manifest public key using the provisioning
-                boot service provided by the current RoT Owner.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
+              name: ROT_OWNER_AUTH_SLOT3_STATE_DIGEST
+              size: 8
               offset: 3112
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT0_UNLOCK4XFER_KEY_TYPE
-              size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3176
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT0_UNLOCK4XFER_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleRelinquishOwnership` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3180
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT0_UNLOCK4XFER_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the Platform Owner Unlock Ownership firmware image.
-                Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Owner Activation process, at the Platform
-                Owner's facilities.
-                The initial Platform Owner provisions its Key Manifest public key using the provisioning
-                boot service provided by the current RoT Owner.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3184
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT0_DIGEST
-              size: 8
-              offset: 3248
               ismubi: false
               isdigest: true
               iszer: false
@@ -2154,537 +2266,24 @@
               iskeymgr_creator: false
               iskeymgr_owner: false
             }
-            {
-              name: PLAT_OWNER_AUTH_SLOT0_ZER
-              size: 8
-              offset: 3256
-              ismubi: false
-              isdigest: false
-              iszer: true
-              inv_default: 0
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-            }
           ]
-          desc: Software managed Platform Owner slot 0 partition.
+          desc:
+            '''
+            This OTP partition is used to capture the state of each key in ROT_OWNER_AUTH_SLOT3.
+            Each key can be in one of the following states: BLANK, ENABLED, DISABLED. The
+            encoded values are such that transitions between BLANK -> ENABLED ->  DISABLED are
+            Possible without causing ECC errors (this is a mechanism similar to how we manage
+            life cycle state transitions). The partition is left unlocked to allow STATE
+            updates in the field. The ROM_EXT is required to lock access to the OTP Direct
+            Access Interface to prevent DoS attacks from malicious code executing on Silicon
+            Owner partitions. DAI write locking is available.
+            '''
           iskeymgr_creator: false
           iskeymgr_owner: false
+          zeroizable: false
           ignore_read_lock_in_rma: false
-          size: 160
-          offset: 3104
-        }
-        {
-          name: PLAT_OWNER_AUTH_SLOT1
-          variant: Unbuffered
-          absorb: false
-          secret: false
-          sw_digest: true
-          hw_digest: false
-          write_lock: Digest
-          read_lock: CSR
-          key_sel: NoKey
-          integrity: true
-          bkout_type: false
-          zeroizable: true
-          items:
-          [
-            {
-              name: PLAT_OWNER_AUTH_SLOT1_KEYMANIFEST_KEY_TYPE
-              size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3264
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT1_KEYMANIFEST_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleKeyBundleSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3268
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT1_KEYMANIFEST_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the Platform Owner Key Manifest.
-                Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Owner intra-role ownership transfer
-                process when the lifecycle state (LC) is PROD. Provisioning occurs via an Ownership Claim
-                operation after the previous Platform Owner completes a Relinquish operation.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3272
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT1_UNLOCK4XFER_KEY_TYPE
-              size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3336
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT1_UNLOCK4XFER_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleRelinquishOwnership` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3340
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT1_UNLOCK4XFER_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the Platform Owner Unlock Ownership firmware image.
-                Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Owner intra-role ownership transfer
-                process when the lifecycle state (LC) is PROD. Provisioning occurs via an Ownership Claim
-                operation after the previous Platform Owner completes a Relinquish operation.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3344
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT1_DIGEST
-              size: 8
-              offset: 3408
-              ismubi: false
-              isdigest: true
-              iszer: false
-              inv_default: <random>
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT1_ZER
-              size: 8
-              offset: 3416
-              ismubi: false
-              isdigest: false
-              iszer: true
-              inv_default: 0
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-            }
-          ]
-          desc: Software managed Platform Owner slot 1 partition.
-          iskeymgr_creator: false
-          iskeymgr_owner: false
-          ignore_read_lock_in_rma: false
-          size: 160
-          offset: 3264
-        }
-        {
-          name: PLAT_OWNER_AUTH_SLOT2
-          variant: Unbuffered
-          absorb: false
-          secret: false
-          sw_digest: true
-          hw_digest: false
-          write_lock: Digest
-          read_lock: CSR
-          key_sel: NoKey
-          integrity: true
-          bkout_type: false
-          zeroizable: true
-          items:
-          [
-            {
-              name: PLAT_OWNER_AUTH_SLOT2_KEYMANIFEST_KEY_TYPE
-              size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3424
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT2_KEYMANIFEST_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleKeyBundleSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3428
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT2_KEYMANIFEST_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the Platform Owner Key Manifest.
-                Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Owner intra-role ownership transfer
-                process when the lifecycle state (LC) is PROD. Provisioning occurs via an Ownership Claim
-                operation after the previous Platform Owner completes a Relinquish operation.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3432
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT2_UNLOCK4XFER_KEY_TYPE
-              size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3496
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT2_UNLOCK4XFER_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleRelinquishOwnership` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3500
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT2_UNLOCK4XFER_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the Platform Owner Unlock Ownership firmware image.
-                Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Owner intra-role ownership transfer
-                process when the lifecycle state (LC) is PROD. Provisioning occurs via an Ownership Claim
-                operation after the previous Platform Owner completes a Relinquish operation.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3504
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT2_DIGEST
-              size: 8
-              offset: 3568
-              ismubi: false
-              isdigest: true
-              iszer: false
-              inv_default: <random>
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT2_ZER
-              size: 8
-              offset: 3576
-              ismubi: false
-              isdigest: false
-              iszer: true
-              inv_default: 0
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-            }
-          ]
-          desc: Software managed Platform Owner slot 2 partition.
-          iskeymgr_creator: false
-          iskeymgr_owner: false
-          ignore_read_lock_in_rma: false
-          size: 160
-          offset: 3424
-        }
-        {
-          name: PLAT_OWNER_AUTH_SLOT3
-          variant: Unbuffered
-          absorb: false
-          secret: false
-          sw_digest: true
-          hw_digest: false
-          write_lock: Digest
-          read_lock: CSR
-          key_sel: NoKey
-          integrity: true
-          bkout_type: false
-          zeroizable: true
-          items:
-          [
-            {
-              name: PLAT_OWNER_AUTH_SLOT3_KEYMANIFEST_KEY_TYPE
-              size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3584
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT3_KEYMANIFEST_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleKeyBundleSigning` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3588
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT3_KEYMANIFEST_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the Platform Owner Key Manifest.
-                Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Owner intra-role ownership transfer
-                process when the lifecycle state (LC) is PROD. Provisioning occurs via an Ownership Claim
-                operation after the previous Platform Owner completes a Relinquish operation.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3592
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT3_UNLOCK4XFER_KEY_TYPE
-              size: 4
-              desc:
-                '''
-                Key usage type. One of the following 32-bit values defined
-                by the sigverify API:
-                - kSigverifyKeyTypeTest for manufacturing, testing and RMA keys.
-                Keys of this type can be used only in TEST_UNLOCKED* and RMA life
-                cycle states.
-                - kSigverifyKeyTypeProd for production keys.
-                Keys of this type can be used in all operational life cycle states, i.e.
-                states in which CPU execution is enabled.
-                - kSigverifyKeyTypeDev for development keys.
-                Keys of this type can be used only in the DEV life cycle state.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3656
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT3_UNLOCK4XFER_KEY_ROLE
-              size: 4
-              desc:
-                '''
-                Key role that describes the kind of assets a key could sign.
-                This must be set to the `kSigverifyKeyRoleRelinquishOwnership` 32-bit
-                value as defined by the sigverify API.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3660
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT3_UNLOCK4XFER_KEY
-              size: 64
-              desc:
-                '''
-                Public Key used to verify the Platform Owner Unlock Ownership firmware image.
-                Key Type: ECC NIST-P256 Curve.
-                This should be provisioned during the Platform Owner intra-role ownership transfer
-                process when the lifecycle state (LC) is PROD. Provisioning occurs via an Ownership Claim
-                operation after the previous Platform Owner completes a Relinquish operation.
-                '''
-              isdigest: false
-              iszer: false
-              ismubi: false
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-              absorb: false
-              inv_default: 0
-              offset: 3664
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT3_DIGEST
-              size: 8
-              offset: 3728
-              ismubi: false
-              isdigest: true
-              iszer: false
-              inv_default: <random>
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-            }
-            {
-              name: PLAT_OWNER_AUTH_SLOT3_ZER
-              size: 8
-              offset: 3736
-              ismubi: false
-              isdigest: false
-              iszer: true
-              inv_default: 0
-              iskeymgr_creator: false
-              iskeymgr_owner: false
-            }
-          ]
-          desc: Software managed Platform Owner slot 3 partition.
-          iskeymgr_creator: false
-          iskeymgr_owner: false
-          ignore_read_lock_in_rma: false
-          size: 160
-          offset: 3584
+          size: 24
+          offset: 3096
         }
         {
           name: EXT_NVM
@@ -2719,12 +2318,12 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 3744
+              offset: 3120
             }
             {
               name: EXT_NVM_ZER
               size: 8
-              offset: 4768
+              offset: 4144
               ismubi: false
               isdigest: false
               iszer: true
@@ -2738,7 +2337,7 @@
           iskeymgr_owner: false
           ignore_read_lock_in_rma: false
           size: 1032
-          offset: 3744
+          offset: 3120
         }
         {
           name: ROM_PATCH
@@ -2772,12 +2371,12 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 4776
+              offset: 4152
             }
             {
               name: ROM_PATCH_DIGEST
               size: 8
-              offset: 12968
+              offset: 12344
               ismubi: false
               isdigest: true
               iszer: false
@@ -2788,7 +2387,7 @@
             {
               name: ROM_PATCH_ZER
               size: 8
-              offset: 12976
+              offset: 12352
               ismubi: false
               isdigest: false
               iszer: true
@@ -2797,12 +2396,12 @@
               iskeymgr_owner: false
             }
           ]
-          desc: ROM Patch Code section. May contain multiple signed ROM2 patches.
+          desc: Second ROM Patch Code section. May contain multiple signed ROM1 patches.
           iskeymgr_creator: false
           iskeymgr_owner: false
           ignore_read_lock_in_rma: false
           size: 8208
-          offset: 4776
+          offset: 4152
         }
         {
           name: SOC_FUSES_CP
@@ -2828,7 +2427,7 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 12984
+              offset: 12360
             }
             {
               name: SOC_FUSES_CP2_DATA
@@ -2840,12 +2439,12 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 13240
+              offset: 12616
             }
             {
               name: SOC_FUSES_CP_DIGEST
               size: 8
-              offset: 13368
+              offset: 12744
               ismubi: false
               isdigest: true
               iszer: false
@@ -2860,7 +2459,7 @@
           zeroizable: false
           ignore_read_lock_in_rma: false
           size: 392
-          offset: 12984
+          offset: 12360
         }
         {
           name: SOC_FUSES_FT
@@ -2886,7 +2485,7 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 13376
+              offset: 12752
             }
             {
               name: SOC_FUSES_FT2_DATA
@@ -2898,12 +2497,12 @@
               iskeymgr_owner: false
               absorb: false
               inv_default: 0
-              offset: 13760
+              offset: 13136
             }
             {
               name: SOC_FUSES_FT_DIGEST
               size: 8
-              offset: 17600
+              offset: 16976
               ismubi: false
               isdigest: true
               iszer: false
@@ -2918,7 +2517,7 @@
           zeroizable: false
           ignore_read_lock_in_rma: false
           size: 4232
-          offset: 13376
+          offset: 12752
         }
         {
           name: SCRATCH_FUSES
@@ -2944,14 +2543,14 @@
                 Unstructured, single item partition for any RoT firmware (runtime,
                 bootstrap, manufacturing) to use and organize freely.
                 '''
-              size: 2392
+              size: 3016
               isdigest: false
               iszer: false
               ismubi: false
               iskeymgr_creator: false
               iskeymgr_owner: false
               inv_default: 0
-              offset: 17608
+              offset: 16984
             }
             {
               name: SCRATCH_FUSES_ZER
@@ -2969,8 +2568,8 @@
           iskeymgr_creator: false
           iskeymgr_owner: false
           ignore_read_lock_in_rma: false
-          size: 2400
-          offset: 17608
+          size: 3024
+          offset: 16984
         }
         {
           name: HW_CFG0
@@ -3055,6 +2654,24 @@
           items:
           [
             {
+              name: EN_SRAM_IFETCH
+              size: 1
+              ismubi: true
+              inv_default: <random>
+              desc:
+                '''
+                Enablement of execute from SRAM switch in the sram_ctrl (see
+                EXEC CSR). A kMultiBitBool8True value enables, while all
+                other values disable.
+                '''
+              isdigest: false
+              iszer: false
+              iskeymgr_creator: false
+              iskeymgr_owner: false
+              absorb: false
+              offset: 20056
+            }
+            {
               name: EN_CSRNG_SW_APP_READ
               size: 1
               ismubi: true
@@ -3071,25 +2688,27 @@
               iskeymgr_creator: false
               iskeymgr_owner: false
               absorb: false
-              offset: 20056
+              offset: 20057
             }
             {
-              name: EN_SRAM_IFETCH
+              name: DIS_RV_DM_LATE_DEBUG
               size: 1
               ismubi: true
               inv_default: <random>
               desc:
                 '''
-                Enablement of execute from SRAM switch in the sram_ctrl (see
-                EXEC CSR). A kMultiBitBool8True value enables, while all
-                other values disable.
+                Disablement of RV_DM late debug feature (see rv_dm
+                documentation). A kMultiBitBool8True disables the late debug
+                feature and renders the rv_dm fully ungated in DEV lifecycle
+                states. All other values gate rv_dm reachability based on
+                the value of LATE_DEBUG_ENABLE CSR in the rv_dm block.
                 '''
               isdigest: false
               iszer: false
               iskeymgr_creator: false
               iskeymgr_owner: false
               absorb: false
-              offset: 20057
+              offset: 20058
             }
             {
               name: HW_CFG1_DIGEST
@@ -3155,13 +2774,13 @@
                 The programming order has to adhere to:
                 SOC_DBG_RAW -> SOC_DBG_PRE_PROD -> SOC_DBG_PROD.
                 Encoding:
-                SOC_DBG_RAW: this value is all-zeroes and will be the NOP state;
-                the LC controller will take precedence.
-                SOC_DBG_PRE_PROD: this is where the ROT will be in PROD state
-                but SOC will be in the pre-production unlock state
-                SOC_DBG_PROD: this is the state where the SOC moves to production,
-                and the challenge-response based authentication protocol is
-                required to unlock SOC debug features
+                - SOC_DBG_RAW: this value is all-zeroes and will be the NOP state;
+                               the LC controller will take precedence.
+                - SOC_DBG_PRE_PROD: this is where the ROT will be in PROD state
+                                    but SOC will be in the pre-production unlock state
+                - SOC_DBG_PROD: this is the state where the SOC moves to production,
+                                and the challenge-response based authentication protocol
+                                is required to unlock SOC debug features
                 '''
               isdigest: false
               iszer: false
@@ -3412,6 +3031,11 @@
               inv_default: <random>
               size: 32
               iskeymgr_creator: true
+              desc:
+                '''
+                Random seed value generated at manufacturing time for FIPS-compliance
+                when deriving the creator root keys during boot.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -3473,6 +3097,11 @@
               inv_default: <random>
               size: 32
               iskeymgr_owner: true
+              desc:
+                '''
+                Random seed value generated at manufacturing time for FIPS-compliance
+                when deriving the owner keys during boot.
+                '''
               isdigest: false
               iszer: false
               ismubi: false
@@ -3506,7 +3135,7 @@
           desc:
             '''
             Secret partition 3.
-            This contains the owner seed.
+            This contains the owner intermediate and owner seeds.
             '''
           absorb: false
           iskeymgr_creator: false
