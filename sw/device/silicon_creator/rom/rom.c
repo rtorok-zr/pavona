@@ -49,8 +49,6 @@
 #include "sw/device/silicon_creator/rom/rom_epmp.h"
 #include "sw/device/silicon_creator/rom/rom_state.h"
 #include "sw/device/silicon_creator/rom/rom_verify.h"
-#include "sw/device/silicon_creator/rom/sigverify_keys_ecdsa_p256.h"
-#include "sw/device/silicon_creator/rom/sigverify_keys_spx.h"
 #include "sw/device/silicon_creator/rom/sigverify_otp_keys.h"
 
 #include "hw/top/hmac_regs.h"  // Generated.
@@ -119,14 +117,7 @@ uint32_t reset_reason_check;
 // Define counters and constant values required by the CFI counter macros.
 CFI_DEFINE_COUNTERS(rom_counters, ROM_CFI_FUNC_COUNTERS_TABLE);
 
-static inline bool rom_console_enabled(void) {
-#ifdef DISCRETE_OTP_MAP
-  return otp_read32(OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_BANNER_EN_OFFSET) !=
-         kHardenedBoolFalse;
-#else
-  return true;
-#endif
-}
+static inline bool rom_console_enabled(void) { return true; }
 
 /**
  * Prints a banner during bootup.
@@ -161,15 +152,7 @@ static rom_error_t rom_init(void) {
   CFI_FUNC_COUNTER_INCREMENT(rom_counters, kCfiRomInit, 1);
   sec_mmio_init();
   uint32_t reset_reasons = rstmgr_reason_get();
-#ifdef DISCRETE_OTP_MAP
-  reset_reason_check =
-      reset_reasons ^
-      (otp_read32(
-           OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_RESET_REASON_CHECK_VALUE_OFFSET) &
-       0xFFFF);
-#else
   reset_reason_check = reset_reasons ^ kHardenedBoolTrue;
-#endif
   if (reset_reasons != (1U << RSTMGR_RESET_INFO_LOW_POWER_EXIT_BIT)) {
     // The above compares all bits, rather than just the one indication "low
     // power exit", because if there is any other reset reason, besides
@@ -251,13 +234,9 @@ static rom_error_t rom_init(void) {
     // controls the retram readback enable. In the integrated OTP map, this
     // unconditionally runs.
     uint32_t sram_ret_readback_en;
-#if DISCRETE_OTP_MAP
     sram_ret_readback_en =
         otp_read32(OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_SRAM_READBACK_EN_OFFSET) >>
         4;
-#else
-    sram_ret_readback_en = kMultiBitBool4True;
-#endif
     retention_sram_readback_enable(sram_ret_readback_en);
     retention_sram_get()->creator.last_shutdown_reason = kErrorOk;
   }
@@ -286,40 +265,16 @@ static rom_error_t rom_init(void) {
 
   // Double check the reset reason value against the OTP-defined value.
   reset_reason_check = launder32(reset_reason_check) ^ rstmgr_reason_get();
-  uint32_t check_val;
-#ifdef DISCRETE_OTP_MAP
-  check_val =
-      otp_read32(
-          OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_RESET_REASON_CHECK_VALUE_OFFSET) >>
-      16;
-#else
-  check_val = kHardenedBoolTrue;
-#endif
-  if (launder32(check_val) != kHardenedBoolFalse) {
-    // Double-check the reset reason.
-    if (launder32(check_val) == reset_reason_check) {
-      HARDENED_CHECK_EQ(check_val, reset_reason_check);
-      // Reset reasons equal, do nothing.
-    } else {
-      return kErrorRomResetReasonFault;
-    }
+  // Double-check the reset reason.
+  if (launder32(reset_reason_check) == kHardenedBoolTrue) {
+    HARDENED_CHECK_EQ(kHardenedBoolTrue, reset_reason_check);
+    // Reset reasons equal, do nothing.
   } else {
-    // Configured to not double-check the reset reason.
-    HARDENED_CHECK_EQ(check_val, kHardenedBoolFalse);
+    return kErrorRomResetReasonFault;
   }
 
-  // Clear the register if configured to do so in the discrete OTP map. In
-  // integrated designs, the reset reason is unconditionally cleared.
-  uint32_t preserve_reset_reason;
-#ifdef DISCRETE_OTP_MAP
-  preserve_reset_reason = otp_read32(
-      OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_PRESERVE_RESET_REASON_EN_OFFSET);
-#else
-  preserve_reset_reason = kHardenedBoolFalse;
-#endif
-  if (preserve_reset_reason != kHardenedBoolTrue) {
-    rstmgr_reason_clear(reset_reasons);
-  }
+  // Clear the reset reason register.
+  rstmgr_reason_clear(reset_reasons);
 
   sec_mmio_check_values(rnd_uint32());
   sec_mmio_check_counters(/*expected_check_count=*/1);
@@ -455,9 +410,7 @@ static inline void rom_boot_rom_ext_increment_cfi(size_t value) {
  * @return rom_error_t Result of the operation.
  */
 OT_WARN_UNUSED_RESULT
-static rom_error_t rom_boot(const manifest_t *manifest,
-                            uintptr_t imm_section_entry_point,
-                            uint32_t flash_exec) {
+static rom_error_t rom_boot(const manifest_t *manifest, uint32_t flash_exec) {
 #ifdef HAS_ROM_CTRL1
 #else
   // In single-stage ROM designs, configure and boot directly to ROM_EXT.
@@ -503,12 +456,8 @@ static rom_error_t rom_boot(const manifest_t *manifest,
 
   // Boot ROM_EXT.
   CFI_FUNC_COUNTER_PREPCALL(rom_counters, kCfiRomBoot, 8, kCfiRomBootRomExt);
-  HARDENED_RETURN_IF_ERROR(rom_boot_rom_ext(manifest_check, entry_point,
-#ifdef DISCRETE_OTP_MAP
-                                            imm_section_entry_point,
-#endif
-                                            flash_exec,
-                                            rom_boot_rom_ext_increment_cfi));
+  HARDENED_RETURN_IF_ERROR(rom_boot_rom_ext(
+      manifest_check, entry_point, flash_exec, rom_boot_rom_ext_increment_cfi));
   CFI_FUNC_COUNTER_INCREMENT(rom_counters, kCfiRomBoot, 10);
   CFI_FUNC_COUNTER_CHECK(rom_counters, kCfiRomBootRomExt, 3);
 #endif
@@ -530,7 +479,6 @@ static rom_error_t rom_try_boot(void) {
 
   boot_policy_manifests_t manifests = boot_policy_manifests_get();
   uint32_t flash_exec = 0;
-  uintptr_t imm_section_entry_point = kHardenedBoolFalse;
 
 #ifdef HAS_FLASH_CTRL
   // Read boot data from flash
@@ -545,10 +493,6 @@ static rom_error_t rom_try_boot(void) {
   rom_error_t error = rom_verify(manifests.ordered[0], lc_state, &sigverify_ctx,
                                  &flash_exec, &rom_verify_increment_cfi);
 #endif
-#ifdef DISCRETE_OTP_MAP
-  error = rom_verify_immutable_section(error, manifests.ordered[0],
-                                       &imm_section_entry_point);
-#endif
   CFI_FUNC_COUNTER_INCREMENT(rom_counters, kCfiRomTryBoot, 4);
 
   if (launder32(error) == kErrorOk) {
@@ -556,8 +500,7 @@ static rom_error_t rom_try_boot(void) {
     CFI_FUNC_COUNTER_CHECK(rom_counters, kCfiRomVerify, 3);
     CFI_FUNC_COUNTER_INIT(rom_counters, kCfiRomTryBoot);
     CFI_FUNC_COUNTER_PREPCALL(rom_counters, kCfiRomTryBoot, 1, kCfiRomBoot);
-    HARDENED_RETURN_IF_ERROR(
-        rom_boot(manifests.ordered[0], imm_section_entry_point, flash_exec));
+    HARDENED_RETURN_IF_ERROR(rom_boot(manifests.ordered[0], flash_exec));
     return kErrorRomBootFailed;
   }
   CFI_FUNC_COUNTER_PREPCALL(rom_counters, kCfiRomTryBoot, 5, kCfiRomVerify);
@@ -568,16 +511,11 @@ static rom_error_t rom_try_boot(void) {
   error = rom_verify(manifests.ordered[1], lc_state, &sigverify_ctx,
                      &flash_exec, &rom_verify_increment_cfi);
 #endif
-#ifdef DISCRETE_OTP_MAP
-  HARDENED_RETURN_IF_ERROR(rom_verify_immutable_section(
-      error, manifests.ordered[1], &imm_section_entry_point));
-#endif
   CFI_FUNC_COUNTER_INCREMENT(rom_counters, kCfiRomTryBoot, 7);
   CFI_FUNC_COUNTER_CHECK(rom_counters, kCfiRomVerify, 3);
 
   CFI_FUNC_COUNTER_PREPCALL(rom_counters, kCfiRomTryBoot, 8, kCfiRomBoot);
-  HARDENED_RETURN_IF_ERROR(
-      rom_boot(manifests.ordered[1], imm_section_entry_point, flash_exec));
+  HARDENED_RETURN_IF_ERROR(rom_boot(manifests.ordered[1], flash_exec));
   return kErrorRomBootFailed;
 }
 #endif

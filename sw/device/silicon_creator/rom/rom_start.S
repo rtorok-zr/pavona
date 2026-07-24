@@ -173,16 +173,6 @@ LABEL_FOR_TEST(kRomStartBootMaybeHalt)
   // Save the OTP SwCfg window address (no previous value to save; we are the
   // entry point).
   mv s0, a0
-#ifdef DISCRETE_OTP_MAP
-  lw   t0, OTP_CTRL_PARAM_CREATOR_SW_CFG_ROM_EXEC_EN_OFFSET(s0)
-  bnez t0, .L_exec_en
-LABEL_FOR_TEST(kRomStartBootHalted)
-.L_halt_loop:
-  wfi
-  j .L_halt_loop
-#endif
-LABEL_FOR_TEST(kRomStartBootExecEn)
-.L_exec_en:
   // Enable NMIs from the watchdog timer.
   call rv_core_ibex_reg_base
   li t1, (1 << RV_CORE_IBEX_NMI_ENABLE_WDOG_EN_BIT)
@@ -221,7 +211,9 @@ LABEL_FOR_TEST(kRomStartStoreT1ToBiteThold)
   // Configure rstmgr alert and cpu info collection.
   call rstmgr_reg_base
   // OTP SwCfg window address still in s0.
-  lw   t0, OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_RSTMGR_INFO_EN_OFFSET(s0)
+  li   t0, OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_RSTMGR_INFO_EN_OFFSET
+  add  t0, s0, t0
+  lw   t0, 0(t0)
   li   t1, HARDENED_BYTE_BOOL_TRUE
 
   // Enable alert info collection if enabled in OTP.
@@ -244,21 +236,9 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   li   t0, 0x00000888
   csrc mie, t0
 
-  // Check if AST initialization should be skipped. The discrete OTP map
-  // contains a chicken bit for this; in the integrated OTP map, AST
-  // initialization unconditionally runs.
-  //
-  // OTP SwCfg Window address still in s0.
-#ifdef DISCRETE_OTP_MAP
-  lw   t0, OTP_CTRL_PARAM_CREATOR_SW_CFG_AST_INIT_EN_OFFSET(s0)
-  li   t1, MULTIBIT_ASM_BOOL4_TRUE
-  bne  t0, t1, .L_ast_init_end
-#endif
-
   // Copy the AST configuration from OTP.
   call ast_reg_base
-  lw   a1, OTP_CTRL_PARAM_CREATOR_SW_CFG_AST_INIT_SIZE_OFFSET(s0)
-  slli a1, a1, 2
+  addi a1, a0, (AST_REGAL_REG_OFFSET + 4)
   addi a2, s0, (OTP_CTRL_PARAM_CREATOR_SW_CFG_AST_CFG_OFFSET)
   call crt_section_copy
 
@@ -275,29 +255,8 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   sw   t1, CLKMGR_JITTER_ENABLE_REG_OFFSET(a0)
 
 .L_ast_init_end:
-  // Check if we are trying to transition to RMA. If so, busy loop for
-  // CREATOR_SW_CFG_RMA_SPIN_CYCLES to let the transition start and continue
-  // looping while lc_ctrl is not ready. Reset if the CPU is still executing at
-  // the end.
+  // Check if we are trying to transition to RMA.
   //
-  // In integrated designs, the CREATOR_SW_CFG_RMA_SPIN_EN field does not exist,
-  // so the pinmux strap check to perform the busy loop is unconditionally
-  // enabled.
-  //
-  // OTP SwCfg Window address still in s0.
-#ifdef DISCRETE_OTP_MAP
-  lw   t0, OTP_CTRL_PARAM_CREATOR_SW_CFG_RMA_SPIN_EN_OFFSET(s0)
-  li   t6, HARDENED_BOOL_TRUE
-  bne  t0, t6, .L_rma_spin_skip
-  lw   t1, OTP_CTRL_PARAM_CREATOR_SW_CFG_RMA_SPIN_EN_OFFSET(s0)
-  beq  t1, t6, .L_rma_spin_check_straps
-  unimp
-  unimp
-  unimp
-  unimp
-#endif
-
-.L_rma_spin_check_straps:
   // Configure strap pins.
   //
   // | GPIO Pin:        | 24             | 23             | 22               |
@@ -340,51 +299,7 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   and  t0, t0, t5
   li   t4, (HARDENED_BOOL_TRUE ^ SW_STRAP_RMA_ENTRY)
   xor  t0, t0, t4
-  bne  t0, t6, .L_rma_spin_skip
 
-  // Double-check the GPIO strap value.
-  li   t6, HARDENED_BOOL_TRUE
-  call gpio_reg_base
-  lw   t1, GPIO_DATA_IN_REG_OFFSET(a0)
-  and  t1, t1, t5
-  xor  t1, t1, t4
-  beq  t1, t6, .L_rma_spin_init
-  unimp
-  unimp
-  unimp
-  unimp
-
-  // Spin for the OTP-specified number of cycles while we wait for
-  // the lifecycle transition request on JTAG.  Since this is a wait
-  // loop, disable the watchdog.
-.L_rma_spin_init:
-  csrw mcycle, zero
-  call aon_timer_reg_base
-  sw   zero, AON_TIMER_WDOG_CTRL_REG_OFFSET(a0)
-.L_rma_spin_cycles_loop:
-  // OTP SwCfg Window address still in s0.
-#ifdef DISCRETE_OTP_MAP
-  lw   t0, OTP_CTRL_PARAM_CREATOR_SW_CFG_RMA_SPIN_CYCLES_OFFSET(s0)
-#else
-  // Integrated designs lack the CREATOR_SW_CFG_RMA_SPIN_CYCLES OTP field, so we
-  // unconditionally spin for 100 cycles (100 ns @ 1GHz)  .
-  li   t0, 100
-#endif
-  csrr t1, mcycle
-  bltu t1, t0, .L_rma_spin_cycles_loop
-.L_rma_spin_lc_ctrl_loop:
-  call lc_ctrl_reg_base
-  lw   t0, LC_CTRL_STATUS_REG_OFFSET(a0)
-  andi t0, t0, (1 << LC_CTRL_STATUS_READY_BIT)
-  beqz t0, .L_rma_spin_lc_ctrl_loop
-  unimp
-  unimp
-  unimp
-  unimp
-
-.L_rma_spin_skip:
-  // Label to jump to after the spin cycles
-  LABEL_FOR_TEST(kRomStartRmaSpinSkip)
   // Skip the `entropy_src` health checks configuration if the
   // `RNG_HEALTH_CONFIG_DIGEST` is not programmed. The default digest value is
   // 0 given that it is stored in a software OTP partition.
@@ -446,9 +361,9 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   // any other value to enable.
   //
   // OTP SwCfg Window address still in s0.
-#ifdef DISCRETE_OTP_MAP
-  lw   t2, OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_SRAM_READBACK_EN_OFFSET(s0)
-#endif
+  li   t0, OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_SRAM_READBACK_EN_OFFSET
+  add  t0, s0, t0
+  lw   t2, 0(t0)
   lw   t0, OTP_CTRL_PARAM_CREATOR_SW_CFG_SRAM_KEY_RENEW_AND_INIT_EN_OFFSET(s0)
   li   t1, HARDENED_BOOL_FALSE
   beq t0, t1, .L_sram_key_renew_skip

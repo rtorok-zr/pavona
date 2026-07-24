@@ -42,11 +42,7 @@ rom_error_t rom_configure_rom_ext(
  */
 OT_WARN_UNUSED_RESULT
 rom_error_t rom_boot_rom_ext(const manifest_t *manifest_check,
-                             uintptr_t entry_point,
-#ifdef DISCRETE_OTP_MAP
-                             uintptr_t imm_section_entry_point,
-#endif
-                             uint32_t flash_exec,
+                             uintptr_t entry_point, uint32_t flash_exec,
                              void (*rom_boot_rom_ext_increment_cfi)(size_t));
 
 #ifdef __cplusplus

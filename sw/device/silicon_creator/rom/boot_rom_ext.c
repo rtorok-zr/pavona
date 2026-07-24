@@ -38,16 +38,16 @@
 extern char _rom_ext_virtual_start_address[];
 extern char _rom_ext_virtual_size[];
 
-/**
- * Base address of the RAM.
- */
-inline uint32_t otp_ctrl_regs_base(void) {
-  return dt_otp_ctrl_reg_block(kDtOtpCtrl, kDtOtpCtrlRegBlockCore);
+static void measure_otp_partition(uint32_t offset, size_t size) {
+  for (uint32_t i = 0; i < size; i += 4) {
+    uint32_t word = otp_read32(offset + i);
+    hmac_sha256_update((unsigned char *)(&word), sizeof(uint32_t));
+  };
 }
 
 /**
- * Measures the combination of software configuration OTP digests and the digest
- * of the secure boot keys.
+ * Measures the combination of software configuration OTP partitions and the
+ * secure boot keys.
  *
  * @param measurement Pointer to the measurement of the partitions.
  * @return rom_error_t Result of the operation.
@@ -58,30 +58,24 @@ static rom_error_t rom_measure_otp_partitions(
   memset(measurement, (int)rnd_uint32(), sizeof(keymgr_binding_value_t));
   // These is no need to harden these data copies as any poisoning of the OTP
   // measurements will result in the derivation of a different UDS identity
-  // which will not be endorsed. Hence we sa-ve the cycles of using sec_mmio.
+  // which will not be endorsed. Hence we save the cycles of using sec_mmio.
   hmac_sha256_init();
-  static_assert(
-      (OTP_CTRL_CREATOR_SW_CFG_DIGEST_CREATOR_SW_CFG_DIGEST_FIELD_WIDTH *
-       OTP_CTRL_CREATOR_SW_CFG_DIGEST_MULTIREG_COUNT / 8) == sizeof(uint64_t),
-      "CreatorSwCfg OTP partition digest no longer 64 bits.");
-  static_assert(
-      (OTP_CTRL_OWNER_SW_CFG_DIGEST_OWNER_SW_CFG_DIGEST_FIELD_WIDTH *
-       OTP_CTRL_OWNER_SW_CFG_DIGEST_MULTIREG_COUNT / 8) == sizeof(uint64_t),
-      "OwnerSwCfg OTP partition digest no longer 64 bits.");
-  hmac_sha256_update(
-      (unsigned char *)(otp_ctrl_regs_base(),
-                        OTP_CTRL_SW_CFG_WINDOW_REG_OFFSET +
-                            OTP_CTRL_PARAM_CREATOR_SW_CFG_DIGEST_OFFSET),
-      sizeof(uint64_t));
-  hmac_sha256_update(
-      (unsigned char *)(otp_ctrl_regs_base(),
-                        OTP_CTRL_SW_CFG_WINDOW_REG_OFFSET +
-                            OTP_CTRL_PARAM_OWNER_SW_CFG_DIGEST_OFFSET),
-      sizeof(uint64_t));
-#ifdef DISCRETE_OTP_MAP
-  hmac_sha256_update(sigverify_ctx->keys.integrity_measurement.digest,
-                     kHmacDigestNumBytes);
-#endif
+  // Measure CREATOR_SW_CFG.
+  measure_otp_partition(OTP_CTRL_PARAM_CREATOR_SW_CFG_OFFSET,
+                        OTP_CTRL_PARAM_CREATOR_SW_CFG_SIZE);
+  // Measure OWNER_SW_CFG.
+  measure_otp_partition(OTP_CTRL_PARAM_OWNER_SW_CFG_OFFSET,
+                        OTP_CTRL_PARAM_OWNER_SW_CFG_SIZE);
+  // Measure the secure boot keys.
+  measure_otp_partition(OTP_CTRL_PARAM_ROT_OWNER_AUTH_SLOT0_OFFSET,
+                        OTP_CTRL_PARAM_ROT_OWNER_AUTH_SLOT0_SIZE);
+  measure_otp_partition(OTP_CTRL_PARAM_ROT_OWNER_AUTH_SLOT1_OFFSET,
+                        OTP_CTRL_PARAM_ROT_OWNER_AUTH_SLOT1_SIZE);
+  measure_otp_partition(OTP_CTRL_PARAM_ROT_OWNER_AUTH_SLOT2_OFFSET,
+                        OTP_CTRL_PARAM_ROT_OWNER_AUTH_SLOT2_SIZE);
+  measure_otp_partition(OTP_CTRL_PARAM_ROT_OWNER_AUTH_SLOT3_OFFSET,
+                        OTP_CTRL_PARAM_ROT_OWNER_AUTH_SLOT3_SIZE);
+
   hmac_sha256_process();
   hmac_digest_t otp_measurement;
   hmac_sha256_final(&otp_measurement);
@@ -195,11 +189,7 @@ rom_error_t rom_configure_rom_ext(
  */
 OT_WARN_UNUSED_RESULT
 rom_error_t rom_boot_rom_ext(const manifest_t *manifest_check,
-                             uintptr_t _entry_point,
-#ifdef DISCRETE_OTP_MAP
-                             uintptr_t imm_section_entry_point,
-#endif
-                             uint32_t flash_exec,
+                             uintptr_t _entry_point, uint32_t flash_exec,
                              void (*rom_boot_rom_ext_increment_cfi)(size_t)) {
   rom_boot_rom_ext_increment_cfi(1);
 #ifdef HAS_FLASH_CTRL
@@ -228,11 +218,6 @@ rom_error_t rom_boot_rom_ext(const manifest_t *manifest_check,
   // In a normal build, this function inlines to nothing.
   stack_utilization_print();
 
-#ifdef DISCRETE_OTP_MAP
-  if (imm_section_entry_point != kHardenedBoolFalse) {
-    ((entry_point *)imm_section_entry_point)();
-  }
-#endif
   // Jump to ROM_EXT.
   ((entry_point *)_entry_point)();
   return kErrorRomBootFailed;

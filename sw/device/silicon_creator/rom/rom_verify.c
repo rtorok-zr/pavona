@@ -15,8 +15,6 @@
 #include "sw/device/silicon_creator/lib/sigverify/sigverify.h"
 #include "sw/device/silicon_creator/rom/address_translation.h"
 #include "sw/device/silicon_creator/rom/boot_policy.h"
-#include "sw/device/silicon_creator/rom/sigverify_keys_ecdsa_p256.h"
-#include "sw/device/silicon_creator/rom/sigverify_keys_spx.h"
 #include "sw/device/silicon_creator/rom/sigverify_otp_keys.h"
 
 /**
@@ -64,23 +62,27 @@ rom_error_t rom_verify(const manifest_t *manifest,
 
   // Load secure boot keys from OTP into RAM.
   HARDENED_RETURN_IF_ERROR(sigverify_otp_keys_init(sigverify_ctx));
-  // ECDSA key.
-  const ecdsa_p256_public_key_t *ecdsa_key = NULL;
-  HARDENED_RETURN_IF_ERROR(sigverify_ecdsa_p256_key_get(
-      sigverify_ctx,
-      sigverify_ecdsa_p256_key_id_get(&manifest->ecdsa_public_key), lc_state,
-      &ecdsa_key));
-  // SPX+ key.
-  const sigverify_spx_key_t *spx_key = NULL;
+  // Look up the ECDSA key in the manifest to ensure it is authorized for the
+  // current lifecycle state in OTP.
+  sigverify_spx_config_id_t unused;
+  HARDENED_RETURN_IF_ERROR(sigverify_otp_key_lookup(
+      sigverify_ctx, kSigVerifyOtpKeysKeySpecRotOwnerFirmwareCodesign,
+      kSigVerifyOtpKeysAlgorithmEcdsa, &manifest->ecdsa_public_key,
+      /*spx_key=*/NULL, lc_state,
+      /*spx_config=*/&unused));
+
   sigverify_spx_config_id_t spx_config = 0;
   const sigverify_spx_signature_t *spx_signature = NULL;
   uint32_t sigverify_spx_en = sigverify_spx_verify_enabled(lc_state);
+  const manifest_ext_spx_key_t *ext_spx_key;
   if (launder32(sigverify_spx_en) != kSigverifySpxDisabledOtp) {
-    const manifest_ext_spx_key_t *ext_spx_key;
     HARDENED_RETURN_IF_ERROR(manifest_ext_get_spx_key(manifest, &ext_spx_key));
-    HARDENED_RETURN_IF_ERROR(sigverify_spx_key_get(
-        sigverify_ctx, sigverify_spx_key_id_get(&ext_spx_key->key), lc_state,
-        &spx_key, &spx_config));
+    // Look up the SPX key in the manifest to ensure it is authorized for the
+    // current lifecycle state in OTP.
+    HARDENED_RETURN_IF_ERROR(sigverify_otp_key_lookup(
+        sigverify_ctx, kSigVerifyOtpKeysKeySpecRotOwnerFirmwareCodesign,
+        kSigVerifyOtpKeysAlgorithmSpx,
+        /*ecdsa_key=*/NULL, &ext_spx_key->key, lc_state, &spx_config));
     const manifest_ext_spx_signature_t *ext_spx_signature;
     HARDENED_RETURN_IF_ERROR(
         manifest_ext_get_spx_signature(manifest, &ext_spx_signature));
@@ -135,80 +137,23 @@ rom_error_t rom_verify(const manifest_t *manifest,
   *flash_exec = 0;
   if (rnd_uint32() < 0x80000000) {
     HARDENED_RETURN_IF_ERROR(sigverify_ecdsa_p256_verify(
-        &manifest->ecdsa_signature, ecdsa_key, &rev_digest, flash_exec));
+        &manifest->ecdsa_signature, &manifest->ecdsa_public_key, &rev_digest,
+        flash_exec));
 
     return sigverify_spx_verify(
-        spx_signature, spx_key, spx_config, lc_state,
+        spx_signature, &ext_spx_key->key, spx_config, lc_state,
         &usage_constraints_from_hw, sizeof(usage_constraints_from_hw),
         anti_rollback, anti_rollback_len, digest_region.start,
         digest_region.length, &fwd_digest, flash_exec);
   } else {
     HARDENED_RETURN_IF_ERROR(sigverify_spx_verify(
-        spx_signature, spx_key, spx_config, lc_state,
+        spx_signature, &ext_spx_key->key, spx_config, lc_state,
         &usage_constraints_from_hw, sizeof(usage_constraints_from_hw),
         anti_rollback, anti_rollback_len, digest_region.start,
         digest_region.length, &fwd_digest, flash_exec));
 
-    return sigverify_ecdsa_p256_verify(&manifest->ecdsa_signature, ecdsa_key,
-                                       &rev_digest, flash_exec);
+    return sigverify_ecdsa_p256_verify(&manifest->ecdsa_signature,
+                                       &manifest->ecdsa_public_key, &rev_digest,
+                                       flash_exec);
   }
 }
-
-#ifdef DISCRETE_OTP_MAP
-rom_error_t rom_verify_immutable_section(rom_error_t verify_result,
-                                         const manifest_t *manifest,
-                                         uintptr_t *imm_section_entry_point) {
-  *imm_section_entry_point = kHardenedBoolFalse;
-  // Verify the immutable ROM_EXT section.
-  uint32_t rom_ext_immutable_section_enabled =
-      otp_read32(OTP_CTRL_PARAM_CREATOR_SW_CFG_IMMUTABLE_ROM_EXT_EN_OFFSET);
-  if (launder32(rom_ext_immutable_section_enabled) == kHardenedBoolTrue) {
-    HARDENED_CHECK_EQ(rom_ext_immutable_section_enabled, kHardenedBoolTrue);
-    // Get offset and length of immutable ROM_EXT code partition.
-    uintptr_t immutable_rom_ext_start_offset = (uintptr_t)otp_read32(
-        OTP_CTRL_PARAM_CREATOR_SW_CFG_IMMUTABLE_ROM_EXT_START_OFFSET_OFFSET);
-    size_t immutable_rom_ext_length = (size_t)otp_read32(
-        OTP_CTRL_PARAM_CREATOR_SW_CFG_IMMUTABLE_ROM_EXT_LENGTH_OFFSET);
-    uintptr_t immutable_rom_ext_entry_point =
-        (uintptr_t)manifest + immutable_rom_ext_start_offset;
-
-    // Compute a hash of the code section.
-    // Include the start offset and the length of the section in the hash.
-    hmac_sha256_init();
-    hmac_sha256_update(&immutable_rom_ext_start_offset,
-                       /*len=*/sizeof(uintptr_t));
-    hmac_sha256_update(&immutable_rom_ext_length, /*len=*/sizeof(size_t));
-    hmac_sha256_update((const void *)immutable_rom_ext_entry_point,
-                       immutable_rom_ext_length);
-    hmac_sha256_process();
-    hmac_digest_t actual_immutable_section_digest;
-    hmac_sha256_final(&actual_immutable_section_digest);
-
-    // Validate the hash matches that in OTP, and if so execute the code.
-    // Otherwise, trigger shutdown via hardened check fail.
-    hmac_digest_t immutable_rom_ext_hash;
-    otp_read(OTP_CTRL_PARAM_CREATOR_SW_CFG_IMMUTABLE_ROM_EXT_SHA256_HASH_OFFSET,
-             immutable_rom_ext_hash.digest, kHmacDigestNumWords);
-    for (size_t i = 0; i < kHmacDigestNumWords; ++i) {
-      if (immutable_rom_ext_hash.digest[i] !=
-          actual_immutable_section_digest.digest[i]) {
-        verify_result = kErrorRomImmSection;
-      }
-    }
-    // If address translation is enabled, adjust the entry_point.
-    if (launder32(manifest->address_translation) == kHardenedBoolTrue) {
-      HARDENED_CHECK_EQ(manifest->address_translation, kHardenedBoolTrue);
-      immutable_rom_ext_entry_point =
-          rom_ext_vma_get(manifest, immutable_rom_ext_entry_point);
-    } else {
-      HARDENED_CHECK_NE(manifest->address_translation, kHardenedBoolTrue);
-    }
-    if (verify_result == kErrorOk) {
-      *imm_section_entry_point = immutable_rom_ext_entry_point;
-    }
-  } else {
-    HARDENED_CHECK_NE(rom_ext_immutable_section_enabled, kHardenedBoolTrue);
-  }
-  return verify_result;
-}
-#endif
