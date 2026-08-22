@@ -351,10 +351,10 @@ static status_t measure_otp_partition(otp_partition_t partition,
     // until the final stages of personalization.
     if (partition == kOtpPartitionOwnerSwCfg) {
       manuf_individualize_device_partition_expected_read(
-          kDifOtpCtrlPartitionOwnerSwCfg, (uint8_t *)otp_state);
+          kOtpPartitionOwnerSwCfg, (uint8_t *)otp_state);
     } else if (partition == kOtpPartitionCreatorSwCfg) {
       manuf_individualize_device_partition_expected_read(
-          kDifOtpCtrlPartitionCreatorSwCfg, (uint8_t *)otp_state);
+          kOtpPartitionCreatorSwCfg, (uint8_t *)otp_state);
     }
   }
 
@@ -708,7 +708,7 @@ static status_t compute_tbs_was_hmac(perso_blob_t *perso_blob_to_host) {
   // Read complete device ID and push into perso blob. The host will need the
   // device ID to reconstruct the WAS.
   uint32_t device_id[kHwCfgDeviceIdSizeIn32BitWords] = {0};
-  TRY(otp_ctrl_testutils_dai_read32_array(&otp_ctrl, kDifOtpCtrlPartitionHwCfg0,
+  TRY(otp_ctrl_testutils_dai_read32_array(&otp_ctrl, kOtpPartitionHwCfg0,
                                           kHwCfgDeviceIdOffset, device_id,
                                           ARRAYSIZE(device_id)));
   perso_tlv_object_header_t device_id_header = 0;
